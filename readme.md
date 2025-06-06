@@ -37,6 +37,7 @@ Tienda de ropa online desarrollada en PHP (backend), HTML, CSS, y JavaScript (fr
 
 ## 📦 Estructura del proyecto
 
+```
 public_html/
 ├── backend/ # API PHP para productos, usuarios, carrito
 │ ├── api_productos.php
@@ -55,6 +56,7 @@ public_html/
 │ ├── contacto.html
 │ └── login.html
 └── .htaccess # (opcional) Redirección de inicio
+```
 
 
 ---
