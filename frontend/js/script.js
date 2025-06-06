@@ -1,4 +1,4 @@
-// ----- Código Astro (ignóralo si no usas Astro, pero lo dejo por si tu plantilla lo requiere) -----
+// (Opcional) Código Astro, ignóralo si no lo usás
 (function(){
   const postDate = null;
   const currentDate = new Date().setHours(0, 0, 0, 0);
@@ -18,17 +18,33 @@
   window.dispatchEvent(new Event("astro:load"));
 })();
 
-// 1. Productos y modal
+// ---- VARIABLES ----
 let productos = [];
 
-async function cargarProductos() {
-  const res = await fetch('../backend/api_productos.php');
+// ---- FUNCIONES DE PRODUCTOS Y MODAL ----
+
+// Carga todos los productos (para tienda)
+async function cargarProductosTienda() {
+  const res = await fetch('/backend/api_productos.php');
   productos = await res.json();
   renderProductos();
+  setupModalYCarrito();
 }
 
+// Carga solo 4 productos random (para home)
+async function cargarProductosHome() {
+  const res = await fetch('/backend/api_productos.php');
+  productos = await res.json();
+  // Randomiza y toma solo 4
+  productos = productos.sort(() => Math.random() - 0.5).slice(0, 4);
+  renderProductos();
+  setupModalYCarrito();
+}
+
+// Renderiza el grid de productos
 function renderProductos() {
   const grid = document.getElementById('productos-grid');
+  if (!grid) return;
   grid.innerHTML = '';
   productos.forEach((p, idx) => {
     const card = document.createElement('div');
@@ -46,10 +62,11 @@ function renderProductos() {
   });
 }
 
-// 2. Modal lógica y carrito
+// Modal de productos y lógica de agregar al carrito
 function setupModalYCarrito() {
-  // Delegación: abrir modal
-  document.getElementById('productos-grid').addEventListener('click', function (e) {
+  const grid = document.getElementById('productos-grid');
+  if (!grid) return;
+  grid.addEventListener('click', function (e) {
     let card = e.target.closest('.card');
     if (!card) return;
     const idx = parseInt(card.getAttribute('data-idx'));
@@ -95,9 +112,9 @@ function setupModalYCarrito() {
   }
 }
 
-// 3. Función agregar al carrito (usada por el modal)
+// ---- CARRITO ----
 function agregarAlCarrito(id, qty = 1) {
-  fetch('../backend/carrito.php', {
+  fetch('/backend/carrito.php', {
     method: 'POST',
     body: new URLSearchParams({ action: 'add', id, qty }),
     credentials: 'include'
@@ -106,7 +123,6 @@ function agregarAlCarrito(id, qty = 1) {
     .then(resp => {
       if (resp.ok) {
         alert('Producto agregado al carrito');
-        // Actualiza badge si existe
         if (typeof actualizarBadgeCarrito === 'function') actualizarBadgeCarrito();
       } else {
         alert(resp.msg || 'Debes iniciar sesión para agregar al carrito');
@@ -114,9 +130,8 @@ function agregarAlCarrito(id, qty = 1) {
     });
 }
 
-// 4. (Opcional) Badge de carrito en navbar
 function actualizarBadgeCarrito() {
-  fetch('../backend/carrito.php?action=get', { credentials: 'include' })
+  fetch('/backend/carrito.php?action=get', { credentials: 'include' })
     .then(r => r.json())
     .then(resp => {
       const total = resp.total_items || 0;
@@ -125,57 +140,44 @@ function actualizarBadgeCarrito() {
     });
 }
 
-// 5. Formulario de contacto (en contacto.html)
-document.addEventListener('DOMContentLoaded', function () {
-    
-    // Al cargar la página, revisa si hay sesión activa
-document.addEventListener('DOMContentLoaded', function() {
-  checkSesionNavbar();
-});
-
-function checkSesionNavbar() {
-  fetch('/backend/usuarios.php?action=check', {credentials: 'include'})
+// ---- LOGIN/LOGOUT EN NAVBAR ----
+window.checkLogin = function(callback) {
+  fetch('/backend/usuarios.php?action=check', { credentials:'include' })
     .then(r => r.json())
-    .then(resp => {
-      const btn = document.getElementById('sesion-btn');
-      if (!btn) return;
-      if (resp.ok && resp.usuario) {
-        // Si hay usuario logueado, mostrar "Cerrar Sesión"
-        btn.textContent = "Cerrar sesión";
-        btn.href = "#";
-        btn.onclick = function(e) {
-          e.preventDefault();
-          logoutUsuario();
-        };
-      } else {
-        // Si no hay usuario logueado, mostrar "Iniciar sesión"
-        btn.textContent = "Iniciar sesión";
-        btn.href = "login.html";
-        btn.onclick = null;
-      }
-    });
-}
+    .then(resp => callback(resp));
+};
 
-function logoutUsuario() {
+window.logout = function() {
   fetch('/backend/usuarios.php', {
     method: 'POST',
-    body: new URLSearchParams({action: 'logout'}),
+    body: new URLSearchParams({action:'logout'}),
     credentials: 'include'
-  })
-  .then(r => r.json())
-  .then(resp => {
-    // Vuelve a mostrar botón de login
-    checkSesionNavbar();
-    // Opcional: recarga la página
-    location.reload();
+  }).then(r => r.json()).then(() => window.location.reload());
+};
+
+function checkSesionNavbar() {
+  checkLogin(function(resp) {
+    const btn = document.getElementById('sesion-btn');
+    if (!btn) return;
+
+    if (resp.ok && resp.id) {
+      // Mostrando el primer nombre y la opción de cerrar sesión
+      btn.innerHTML = `<span>${(resp.nombre || '').split(' ')[0]}</span> (Cerrar sesión)`;
+      btn.href = "#";
+      btn.onclick = function(e) {
+        e.preventDefault();
+        window.logout();
+      };
+    } else {
+      btn.textContent = "Iniciar sesión";
+      btn.href = "login.html";
+      btn.onclick = null;
+    }
   });
 }
 
-    
-    
-    
-    
-    
+// ---- CONTACTO ----
+function setupContacto() {
   const form = document.getElementById('form-contacto');
   if (form) {
     form.addEventListener('submit', function (e) {
@@ -186,67 +188,27 @@ function logoutUsuario() {
       setTimeout(() => { resp.textContent = ""; }, 6000);
     });
   }
-});
+}
 
-// 6. Inicialización única
+// ---- INICIALIZACIÓN ----
 document.addEventListener('DOMContentLoaded', function () {
-  // Solo para páginas que tienen productos
-  if (document.getElementById('productos-grid')) {
-    cargarProductos().then(setupModalYCarrito);
+  const pathname = window.location.pathname;
+
+  // Productos: según página
+  if (pathname.endsWith('tienda.html')) {
+    cargarProductosTienda();
+  } else if (document.getElementById('productos-grid')) {
+    cargarProductosHome();
   }
-  // Actualiza el badge del carrito si existe
+
+  // Badge del carrito
   if (document.getElementById('carrito-badge')) {
     actualizarBadgeCarrito();
   }
+
+  // Botón login/logout en navbar
+  checkSesionNavbar();
+
+  // Formulario de contacto (si existe en la página)
+  setupContacto();
 });
-
-// 7. Otros ejemplos de uso del backend (puedes comentar o eliminar estos si no los usas):
-/*
-// Registro
-fetch('../backend/usuarios.php', {
-  method: 'POST',
-  body: new URLSearchParams({action:'register', nombre:'Juan', email:'correo@ejemplo.com', password:'123456'})
-}).then(r=>r.json()).then(console.log);
-
-// Login
-fetch('../backend/usuarios.php', {
-  method: 'POST',
-  body: new URLSearchParams({action:'login', email:'correo@ejemplo.com', password:'123456'})
-}).then(r=>r.json()).then(console.log);
-
-// Check sesión
-fetch('../backend/usuarios.php?action=check').then(r=>r.json()).then(console.log);
-
-// Logout
-fetch('../backend/usuarios.php', {
-  method: 'POST',
-  body: new URLSearchParams({action:'logout'})
-}).then(r=>r.json()).then(console.log);
-*/
-
-// 8. Carrito completo (para futuras páginas del carrito, si lo necesitas)
-function obtenerCarrito() {
-  fetch('../backend/carrito.php?action=get', { credentials: 'include' })
-    .then(r => r.json())
-    .then(resp => {
-      if (resp.ok) {
-        // Renderiza el carrito: resp.carrito (array de items), resp.subtotal, resp.total_items
-      } else {
-        // No logueado o error
-      }
-    });
-}
-function quitarDelCarrito(id) {
-  fetch('../backend/carrito.php', {
-    method: 'POST',
-    body: new URLSearchParams({ action: 'remove', id }),
-    credentials: 'include'
-  }).then(r => r.json()).then(resp => obtenerCarrito());
-}
-function limpiarCarrito() {
-  fetch('../backend/carrito.php', {
-    method: 'POST',
-    body: new URLSearchParams({ action: 'clear' }),
-    credentials: 'include'
-  }).then(r => r.json()).then(resp => obtenerCarrito());
-}

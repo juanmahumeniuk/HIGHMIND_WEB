@@ -12,13 +12,14 @@
 </head>
 <body>
     <header>
-        <nav class="navbar">
-    <a href="#" class="logo">
+      <nav class="navbar">
+      <a href="#" class="logo">
         <img src="img/logo.jpeg" alt="HIGHMIND" />
         <span>HIGHMIND</span>
-    </a>
-    <ul class="nav-links">
-        <li><a href="#">Inicio</a></li>
+      </a>
+      <button class="menu-toggle" id="menu-toggle">&#9776;</button>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="index.html">Inicio</a></li>
         <li><a href="tienda.html">Tienda</a></li>
         <li><a href="contacto.html">Contacto</a></li>
         <li><a href="login.html" id="sesion-btn">Iniciar sesión</a></li>
@@ -27,9 +28,9 @@
             <span id="carrito-badge"></span>
           </a>
         </li>
+      </ul>
+    </nav>
 
-    </ul>
-</nav>
 
     </header>
     <main>
@@ -42,42 +43,7 @@
         </section>
         <section class="productos">
             <h2>Nuevos productos</h2>
-            <div class="productos-grid">
-                <!-- Ejemplo de producto -->
-                <div class="card">
-                    <img src="img/producto (3).jpeg" alt="Buzo Smile">
-                    <div class="card-body">
-                        <h3>Buzo Smile</h3>
-                        <p>Calidad premium. Talles S-XL.</p>
-                        <button class="btn">Ver más</button>
-                    </div>
-                </div>
-                <div class="card">
-                    <img src="img/producto (4).jpeg" alt="Buzo Smile">
-                    <div class="card-body">
-                        <h3>Buzo Smile</h3>
-                        <p>Calidad premium. Talles S-XL.</p>
-                        <button class="btn">Ver más</button>
-                    </div>
-                </div>
-                <div class="card">
-                    <img src="img/producto (5).jpeg" alt="Buzo Smile">
-                    <div class="card-body">
-                        <h3>Buzo Smile</h3>
-                        <p>Calidad premium. Talles S-XL.</p>
-                        <button class="btn">Ver más</button>
-                    </div>
-                </div>
-                <div class="card">
-                    <img src="img/producto (6).jpeg" alt="Buzo Smile">
-                    <div class="card-body">
-                        <h3>Buzo Smile</h3>
-                        <p>Calidad premium. Talles S-XL.</p>
-                        <button class="btn">Ver más</button>
-                    </div>
-                </div>
-
-                <!-- Repetir según cantidad de productos -->
+            <div class="productos-grid" id="productos-grid"></div>
             </div>
         </section>
     </main>
@@ -86,6 +52,8 @@
     </footer>
     <script src="js/script.js"></script>
     <script src="js/carrito.js"></script>
+    <script src="js/navbar.js"></script>
+    <script src="js/login.js"></script>
 
         <!-- Modal Carrito -->
     <div id="modal-carrito" class="modal" style="display:none;">

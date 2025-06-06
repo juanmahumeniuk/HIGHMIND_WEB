@@ -11,24 +11,24 @@
 </head>
 <body>
     <header>
-            <nav class="navbar">
+        <nav class="navbar">
         <a href="#" class="logo">
             <img src="img/logo.jpeg" alt="HIGHMIND" />
             <span>HIGHMIND</span>
         </a>
-        <ul class="nav-links">
-            <li><a href="#">Inicio</a></li>
+        <button class="menu-toggle" id="menu-toggle">&#9776;</button>
+        <ul class="nav-links" id="nav-links">
+            <li><a href="index.html">Inicio</a></li>
             <li><a href="tienda.html">Tienda</a></li>
             <li><a href="contacto.html">Contacto</a></li>
-            <li><a href="login.html">Iniciar sesión</a></li>
+            <li><a href="login.html" id="sesion-btn">Iniciar sesión</a></li>
             <li>
-              <a href="#" id="carrito-btn">Carrito
+            <a href="#" id="carrito-btn">Carrito
                 <span id="carrito-badge"></span>
-              </a>
+            </a>
             </li>
-    
         </ul>
-    </nav>
+        </nav>
 
     </header>
     <main>
@@ -67,6 +67,7 @@
     </footer>
         <script src="js/script.js"></script>
         <script src="js/carrito.js"></script>
+        <script src="js/navbar.js"></script>
 
             <!-- Modal Carrito -->
         <div id="modal-carrito" class="modal" style="display:none;">
