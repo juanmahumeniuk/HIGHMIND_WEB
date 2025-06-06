@@ -75,27 +75,13 @@ public_html/
 - PHP 7.4+  
 - MySQL/MariaDB  
 - Hosting compartido o local (funciona en Hostinger, cPanel, XAMPP, etc.)  
-- Navegador moderno (Chrome, Edge, Firefox, Safari)
+
 
 ---
 
 ## 🙌 Créditos
 
-Desarrollado por [Tu Nombre o Nick]  
-Diseño y código inspirados en Material You y las mejores prácticas e-commerce 2025.
+Desarrollado por panITUS.  
+Diseño y código inspirados en Google Material You.
 
 ---
-
-## 📸 Screenshots
-
-<details>
-<summary>Ver screenshots</summary>
-
-- Catálogo desktop y mobile  
-- Modal de producto  
-- Carrito de compras  
-- Navbar y menú móvil  
-- Login y registro con fondo blur  
-
-</details>
-
