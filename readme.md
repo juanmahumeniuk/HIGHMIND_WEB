@@ -1,10 +1,10 @@
-# 🧠 HIGHMIND – Tienda Online FullStack
+# 🧠 HIGHMIND – Tienda Online
 
 Tienda de ropa online desarrollada en PHP (backend), HTML, CSS, y JavaScript (frontend), lista para producción en hosting compartido (Hostinger, cPanel, etc.), **totalmente responsive** y compatible con MySQL.
 
 ---
 
-## 🚀 Features principales
+## 🚀 Características principales
 
 - **Catálogo de productos**: Carga dinámica desde base de datos (MySQL), con imágenes y descripciones.
 - **Carrito de compras persistente**: Soporte para múltiples ítems, cambio de cantidad y subtotal automático.  
