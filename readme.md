@@ -1,87 +1,111 @@
-# 🧠 HIGHMIND – Tienda Online
+# HIGHMIND — Tienda online
 
-Tienda de ropa online desarrollada en PHP (backend), HTML, CSS, y JavaScript (frontend), lista para producción en hosting compartido (Hostinger, cPanel, etc.), **totalmente responsive** y compatible con MySQL.
-
----
-
-## 🚀 Características principales
-
-- **Catálogo de productos**: Carga dinámica desde base de datos (MySQL), con imágenes y descripciones.
-- **Carrito de compras persistente**: Soporte para múltiples ítems, cambio de cantidad y subtotal automático.  
-- **Modal de producto**: Vista detallada tipo Instagram (desktop y mobile), imagen en grande, info, talles y botón “Agregar al carrito”.
-- **Login y registro de usuarios**: Sesiones PHP seguras, validación y registro directo desde la web.
-- **Navbar adaptable**:  
-  - En desktop: menú horizontal estético estilo Material You.  
-  - En mobile: menú hamburguesa fullscreen, con fondo oscuro y centrado, y cierre automático al elegir un link.
-- **Badge de carrito en tiempo real**: Actualización automática al agregar/quitar ítems.
-- **Modo oscuro predominante**: Colores material, negro, gris y detalles vibrantes.
-- **Hero en la home**: Mensaje destacado, llamado a la acción y muestra de productos random cada vez.
-- **Fondo animado borroso**: Fondo blur con banner en login y otras páginas.
-- **Footer y navbar redondeados**: Estética consistente y moderna, con sombra suave.
+Tienda de ropa con catálogo, carrito por usuario, autenticación, contacto y checkout con **Mercado Pago** embebido (Card Payment Brick). El backend es **PHP 8** en estilo MVC; el frontend es estático (**HTML, CSS, JS**) bajo `public_html/frontend/`. Pensado para despliegue en hosting compartido (Apache + MySQL/MariaDB), con la lógica de aplicación fuera del document root.
 
 ---
 
-## 🛠️ Gimmicks & extras
+## Arquitectura
 
-- **Animaciones suaves**: En el menú, modals y botones.
-- **Transparencias y blurs**: En formularios y overlays.
-- **Navbar con login/logout dinámico**: Cambia automáticamente entre “Iniciar sesión” y “Cerrar sesión (nombre)”.
-- **Menú hamburguesa con cierre automático**: Al tocar un link o fuera del menú.
-- **Overlay oscuro al abrir menú**: Enfoca la atención al menú móvil.
-- **Modal de carrito**: Carrito accesible desde la navbar, con edición y vaciado sin recargar.
-- **Carga de productos aleatoria en la home**: Siempre ves 4 productos diferentes.
-- **100% mobile-first**: Cards y modals ocupan toda la pantalla en móvil, con tipografía y botones XL.
-- **Formularios autovalidados**: Feedback instantáneo y mensajes de éxito/error.
+| Capa | Ubicación |
+|------|-----------|
+| Aplicación PHP | [`app/`](app/) — controladores, modelos, núcleo (`Env`, `Database`, `Router`, `Session`, `Csrf`, `Input`, etc.) |
+| Document root | [`public_html/`](public_html/) — estáticos, `.htaccess` y **front controller** de la API |
+| API HTTP | `GET/POST …/api/{recurso}` → [`public_html/api/index.php`](public_html/api/index.php) → [`app/Core/Router.php`](app/Core/Router.php) |
+
+Recursos expuestos por la API (segmento inicial del path):
+
+- `productos` — catálogo (JSON)
+- `usuarios` — registro, login, logout, sesión, CSRF
+- `carrito` — ítems del usuario logueado
+- `contacto` — envío de mensaje (persistencia en BD si existe la tabla)
+- `pagos` — configuración Mercado Pago y creación de pagos vía API `/v1/payments`
+
+Variables de entorno: copiá [`.env.example`](.env.example) a **`.env`** (no versionado) y completá credenciales.
 
 ---
 
-## 📦 Estructura del proyecto
+## Características
+
+- **Catálogo** cargado desde MySQL con PDO y consultas preparadas.
+- **Carrito** asociado al usuario; subtotal, cantidades y vaciado desde el modal.
+- **Registro / login** con sesión PHP (cookie `HttpOnly`, `Secure` bajo HTTPS, `SameSite`), regeneración de ID al iniciar sesión y tokens **CSRF** en operaciones que mutan estado.
+- **Contacto** con POST a la API, sanitización de entradas y tabla opcional `contacto_mensajes` ([`database/migrations/001_contacto_mensajes.sql`](database/migrations/001_contacto_mensajes.sql)).
+- **Pagos** con SDK Mercado Pago (brick de tarjeta) y servidor que cobra con token; modo prueba detectable en UI; candado **`CHECKOUT_PAYMENTS_ENABLED`** para desactivar cobros por configuración.
+- **Frontend responsive**: navbar con menú móvil, modales de producto y carrito, estilos en [`public_html/frontend/css/estilo.css`](public_html/frontend/css/estilo.css).
+
+---
+
+## Estructura del repositorio
 
 ```
-public_html/
-├── backend/ # API PHP para productos, usuarios, carrito
-│ ├── api_productos.php
-│ ├── usuarios.php
-│ └── carrito.php
-├── frontend/ # Frontend HTML, CSS, JS, imágenes
-│ ├── img/
-│ ├── css/
-│ │ └── estilo.css
-│ ├── js/
-│ │ ├── script.js
-│ │ ├── login.js
-│ │ └── navbar.js
-│ ├── index.html
-│ ├── tienda.html
-│ ├── contacto.html
-│ └── login.html
-└── .htaccess # (opcional) Redirección de inicio
+Highmind_Web/
+├── app/                          # PHP (fuera del document root en producción ideal)
+│   ├── bootstrap.php
+│   ├── Controllers/
+│   ├── Core/
+│   └── Models/
+├── database/
+│   └── migrations/               # SQL incremental (ej. contacto)
+├── public_html/                  # Document root del virtual host
+│   ├── api/
+│   │   └── index.php             # Front controller API
+│   ├── frontend/                 # HTML, CSS, JS, img
+│   ├── index.html                # Redirección típica a frontend/
+│   ├── router-dev.php            # Router para php -S (desarrollo)
+│   └── .htaccess                 # Rewrite /api → api/index.php
+├── .env.example                  # Plantilla de configuración
+├── readme.md
+└── …                             # dumps SQL de referencia / import inicial
 ```
 
+En producción, la carpeta `app/` debe quedar **fuera** de la carpeta servida por Apache si el hosting lo permite; el `bootstrap` ya asume `app` como raíz MVC y carga `.env` desde el directorio padre de `app/`.
 
 ---
 
-## 💡 Cómo probar en local
+## Configuración (`.env`)
 
-1. Subí el proyecto a tu servidor o localhost.
-2. Importá la base de datos MySQL usando el dump SQL incluido.
-3. Configurá el acceso a la DB en los archivos PHP (`backend/`).
-4. Accedé a `/frontend/index.html` o configurá un index para redirigir a la tienda.
-
----
-
-## 🔐 Requerimientos
-
-- PHP 7.4+  
-- MySQL/MariaDB  
-- Hosting compartido o local (funciona en Hostinger, cPanel, XAMPP, etc.)  
-
+- **Base de datos:** `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`, `DB_CHARSET` (opcional `DB_UNIX_SOCKET`).
+- **HTTPS:** `FORCE_HTTPS` — en bootstrap se puede forzar redirección a HTTPS.
+- **Pagos:** `CHECKOUT_PAYMENTS_ENABLED` (`true` / `false` / `off`, etc.); `MP_PUBLIC_KEY`, `MP_ACCESS_TOKEN`; opcional `MP_API_BASE`.
+- Ver comentarios en [`.env.example`](.env.example).
 
 ---
 
-## 🙌 Créditos
+## Desarrollo local
 
-Desarrollado por panITUS.  
-Diseño y código inspirados en Google Material You.
+Requisitos: **PHP 8+** con extensiones habituales (`pdo_mysql`, `curl` para Mercado Pago), **MariaDB/MySQL**.
+
+1. Creá la base e importá el esquema/datos (por ejemplo dumps del repo o los que uses en tu entorno).
+2. Ejecutá migraciones pendientes (ej. `database/migrations/001_contacto_mensajes.sql`) si usás contacto en servidor.
+3. Copiá `.env.example` → `.env` y ajustá `DB_*` y, si probás pagos, credenciales **TEST** de Mercado Pago.
+4. Servidor embebido PHP (desde la raíz del repo):
+
+```bash
+php -S localhost:8080 -t public_html public_html/router-dev.php
+```
+
+Navegá a `http://localhost:8080/frontend/` (o el `index` que redirija). Las peticiones a `/api/...` las enruta `router-dev.php`.
+
+Con **Apache**, el document root apunta a `public_html/`; las reglas de [`.htaccess`](public_html/.htaccess) envían `/api` al front controller.
 
 ---
+
+## Seguridad (resumen)
+
+- Sesiones endurecidas; **CSRF** en login, registro, logout, carrito mutante, contacto y creación de pagos.
+- Entradas normalizadas con [`app/Core/Input.php`](app/Core/Input.php); salidas sensibles en JS sin `innerHTML` inseguro donde aplica.
+- Contraseñas con `password_hash` (Argon2id si está disponible, si no bcrypt).
+- Consultas SQL con **PDO prepared statements** en modelos.
+
+---
+
+## Mercado Pago
+
+- Claves **`TEST-…`** = sandbox (la UI puede mostrar aviso de modo prueba).
+- Producción: credenciales de producción y revisión de `CHECKOUT_PAYMENTS_ENABLED` según política del sitio.
+
+---
+
+## Créditos
+
+Proyecto HIGHMIND. Desarrollo: panITUS. Interfaz inspirada en una estética tipo Material / oscura.
