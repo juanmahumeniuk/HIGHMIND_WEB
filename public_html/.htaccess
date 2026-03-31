@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Forzar HTTPS (omitir en localhost / 127.0.0.1 para desarrollo)
+    RewriteCond %{HTTP_HOST} !^localhost [NC]
+    RewriteCond %{HTTP_HOST} !^127\.0\.0\.1 [NC]
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # API → front controller
+    RewriteRule ^api/?$ api/index.php [L,QSA]
+    RewriteRule ^api/(.+)$ api/index.php?path=$1 [L,QSA]
+</IfModule>
