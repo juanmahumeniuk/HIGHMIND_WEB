@@ -814,6 +814,13 @@ header, .navbar, main, .login-box, footer {
     margin-bottom: 0.1em;
 }
 
+#finalizar-compra.btn-checkout-locked:disabled,
+#finalizar-compra.btn-checkout-locked[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(0.35);
+}
+
 /* Navbar y link de carrito */
 .nav-links li {
   position: relative; /* Solo si no lo tienes */

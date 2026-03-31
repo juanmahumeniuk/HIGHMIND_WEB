@@ -41,8 +41,22 @@ final class PagoController
         $publicKey = Env::get('MP_PUBLIC_KEY', '') ?? '';
         $accessToken = Env::get('MP_ACCESS_TOKEN', '') ?? '';
         $testMode = str_starts_with($publicKey, 'TEST-') || str_starts_with($accessToken, 'TEST-');
+        $paymentsEnabled = self::paymentsEnabled();
+
+        if (!$paymentsEnabled) {
+            JsonResponse::send([
+                'ok' => true,
+                'payments_enabled' => false,
+                'public_key' => '',
+                'test_mode' => $testMode,
+                'msg' => 'Los pagos están deshabilitados en este entorno.',
+            ]);
+            return;
+        }
+
         JsonResponse::send([
             'ok' => $publicKey !== '',
+            'payments_enabled' => true,
             'public_key' => $publicKey,
             'test_mode' => $testMode,
             'msg' => $publicKey !== '' ? 'OK' : 'Falta configurar MP_PUBLIC_KEY',
@@ -53,6 +67,11 @@ final class PagoController
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
+            return;
+        }
+
+        if (!self::paymentsEnabled()) {
+            JsonResponse::send(['ok' => false, 'msg' => 'Los pagos están deshabilitados en este entorno.'], 403);
             return;
         }
 
@@ -213,5 +232,11 @@ final class PagoController
         }
         $decoded = json_decode($raw, true);
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private static function paymentsEnabled(): bool
+    {
+        $v = strtolower(Env::get('CHECKOUT_PAYMENTS_ENABLED', 'true') ?? 'true');
+        return !in_array($v, ['0', 'false', 'no', 'off'], true);
     }
 }

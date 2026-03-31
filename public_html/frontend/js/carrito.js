@@ -15,6 +15,7 @@ function safeImgSrc(src) {
 function mostrarModalCarrito() {
   document.getElementById('modal-carrito').style.display = 'flex';
   cargarCarrito();
+  applyCheckoutButtonState();
 }
 
 // MOSTRAR CARRITO
@@ -157,6 +158,44 @@ function ensureCheckoutPanelOpen() {
   return true;
 }
 
+function applyCheckoutButtonState() {
+  const btn = document.getElementById('finalizar-compra');
+  if (!btn) return;
+  fetch(apiUrl('pagos?action=config'), { credentials: 'include' })
+    .then(function (r) {
+      if (r.status === 401) {
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+        btn.title = 'Iniciá sesión para finalizar la compra.';
+        btn.classList.add('btn-checkout-locked');
+        return null;
+      }
+      return r.json();
+    })
+    .then(function (d) {
+      if (!d) return;
+      if (d.payments_enabled === false) {
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+        btn.title = d.msg || 'Pagos deshabilitados en este sitio.';
+        btn.classList.add('btn-checkout-locked');
+        return;
+      }
+      if (!d.public_key) {
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+        btn.title = d.msg || 'Pagos no configurados.';
+        btn.classList.add('btn-checkout-locked');
+        return;
+      }
+      btn.disabled = false;
+      btn.removeAttribute('aria-disabled');
+      btn.title = '';
+      btn.classList.remove('btn-checkout-locked');
+    })
+    .catch(function () {});
+}
+
 function setCheckoutPaymentNotice(config) {
   const el = document.getElementById('checkout-payment-notice');
   if (!el) return;
@@ -173,8 +212,16 @@ function setCheckoutPaymentNotice(config) {
 
 function fetchCheckoutConfig() {
   return fetch(apiUrl('pagos?action=config'), { credentials: 'include' })
-    .then(function (r) { return r.json(); })
+    .then(function (r) {
+      if (r.status === 401) {
+        throw new Error('Iniciá sesión para pagar.');
+      }
+      return r.json();
+    })
     .then(function (d) {
+      if (d.payments_enabled === false) {
+        throw new Error(d.msg || 'Los pagos están deshabilitados.');
+      }
       if (!d.ok || !d.public_key) {
         throw new Error(d.msg || 'No se pudo inicializar Mercado Pago');
       }
@@ -295,6 +342,9 @@ function setupFinalizarCompra() {
   const finalizarBtn = document.getElementById('finalizar-compra');
   if (finalizarBtn) {
     finalizarBtn.onclick = function () {
+      if (finalizarBtn.disabled || finalizarBtn.getAttribute('aria-disabled') === 'true') {
+        return;
+      }
       const subtotalText = (document.getElementById('carrito-subtotal') || {}).textContent || '';
       const normalized = subtotalText.replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.');
       const subtotal = Number(normalized);
@@ -362,4 +412,5 @@ document.addEventListener('DOMContentLoaded', function () {
   setupFinalizarCompra();
   setupCerrarModal();
   actualizarBadgeCarrito();
+  applyCheckoutButtonState();
 });
