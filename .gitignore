@@ -1,0 +1,30 @@
+# Entorno y secretos (mantener .env.example versionado)
+.env
+.env.local
+.env.*.local
+!.env.example
+*.jpeg
+*.jpg
+
+# Volcados / exports de BD local (no bloquea database/migrations/)
+dump.sql
+*-dump.sql
+*_dump.sql
+
+# Dependencias y caché
+/vendor/
+node_modules/
+*.log
+.phpunit.result.cache
+.php-cs-fixer.cache
+
+# SO y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# Cursor / herramientas locales (opcional)
+.cursor/
