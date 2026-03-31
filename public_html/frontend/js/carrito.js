@@ -158,6 +158,20 @@ function ensureCheckoutPanelOpen() {
   return true;
 }
 
+function syncCheckoutDisabledHint() {
+  var btn = document.getElementById('finalizar-compra');
+  var el = document.getElementById('checkout-disabled-hint');
+  if (!el || !btn) return;
+  if (btn.getAttribute('data-checkout-lock') === 'payments_disabled') {
+    el.style.display = 'block';
+    el.textContent =
+      'Por seguridad el pago está desactivado. Solicitá al administrador que lo habilite temporalmente (CHECKOUT_PAYMENTS_ENABLED).';
+  } else {
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+}
+
 function applyCheckoutButtonState() {
   const btn = document.getElementById('finalizar-compra');
   if (!btn) return;
@@ -166,6 +180,7 @@ function applyCheckoutButtonState() {
       if (r.status === 401) {
         btn.disabled = true;
         btn.setAttribute('aria-disabled', 'true');
+        btn.setAttribute('data-checkout-lock', 'login_required');
         btn.title = 'Iniciá sesión para finalizar la compra.';
         btn.classList.add('btn-checkout-locked');
         return null;
@@ -177,6 +192,7 @@ function applyCheckoutButtonState() {
       if (d.payments_enabled === false) {
         btn.disabled = true;
         btn.setAttribute('aria-disabled', 'true');
+        btn.setAttribute('data-checkout-lock', 'payments_disabled');
         btn.title = d.msg || 'Pagos deshabilitados en este sitio.';
         btn.classList.add('btn-checkout-locked');
         return;
@@ -184,16 +200,21 @@ function applyCheckoutButtonState() {
       if (!d.public_key) {
         btn.disabled = true;
         btn.setAttribute('aria-disabled', 'true');
+        btn.setAttribute('data-checkout-lock', 'not_configured');
         btn.title = d.msg || 'Pagos no configurados.';
         btn.classList.add('btn-checkout-locked');
         return;
       }
       btn.disabled = false;
       btn.removeAttribute('aria-disabled');
+      btn.removeAttribute('data-checkout-lock');
       btn.title = '';
       btn.classList.remove('btn-checkout-locked');
     })
-    .catch(function () {});
+    .catch(function () {})
+    .finally(function () {
+      syncCheckoutDisabledHint();
+    });
 }
 
 function setCheckoutPaymentNotice(config) {
@@ -343,6 +364,20 @@ function setupFinalizarCompra() {
   if (finalizarBtn) {
     finalizarBtn.onclick = function () {
       if (finalizarBtn.disabled || finalizarBtn.getAttribute('aria-disabled') === 'true') {
+        var lock = finalizarBtn.getAttribute('data-checkout-lock') || '';
+        if (lock === 'payments_disabled') {
+          window.alert(
+            'Por seguridad se desactivó el pago en este sitio.\n\n' +
+              'Solicitá al administrador que lo habilite de forma temporal cuando corresponda ' +
+              '(variable CHECKOUT_PAYMENTS_ENABLED en el servidor).'
+          );
+        } else if (lock === 'login_required') {
+          window.alert('Iniciá sesión para finalizar la compra.');
+        } else if (lock === 'not_configured') {
+          window.alert('Los pagos no están configurados. Contactá al administrador del sitio.');
+        } else {
+          window.alert('No podés finalizar la compra en este momento.');
+        }
         return;
       }
       const subtotalText = (document.getElementById('carrito-subtotal') || {}).textContent || '';

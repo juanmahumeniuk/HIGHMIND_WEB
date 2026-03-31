@@ -762,6 +762,18 @@ header, .navbar, main, .login-box, footer {
     gap: 0.7em;
     margin-top: 0.5em;
 }
+
+.checkout-disabled-hint {
+    width: 100%;
+    max-width: 100%;
+    margin: -0.15rem 0 0 0;
+    padding: 0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: #b0a070;
+    text-align: right;
+    align-self: stretch;
+}
 .checkout-panel {
     margin-top: 1rem;
     border-top: 1px solid #2a2a2a;
