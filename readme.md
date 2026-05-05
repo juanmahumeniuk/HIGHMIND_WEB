@@ -4,7 +4,7 @@ Tienda de ropa con catálogo, carrito por usuario, autenticación, contacto y ch
 
 ---
 
-## Arquitectura
+## Arquitectura A
 
 | Capa | Ubicación |
 |------|-----------|
