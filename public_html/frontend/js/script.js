@@ -173,7 +173,10 @@ function agregarAlCarrito(id, qty) {
           cargarCarrito();
         }
       } else {
-        alert(resp.msg || 'Debes iniciar sesión para agregar al carrito');
+        if (confirm((resp.msg || 'Debes iniciar sesión para agregar al carrito') + '\n\n¿Ir a iniciar sesión?')) {
+          sessionStorage.setItem('postLoginRedirect', window.location.href);
+          window.location.href = 'login.html';
+        }
       }
     });
 }
@@ -239,7 +242,9 @@ function checkSesionNavbar() {
     } else {
       btn.textContent = 'Iniciar sesión';
       btn.href = 'login.html';
-      btn.onclick = null;
+      btn.onclick = function() {
+        sessionStorage.setItem('postLoginRedirect', window.location.href);
+      };
     }
   });
 }

@@ -23,7 +23,11 @@ if (loginForm) {
       })
       .then(function (resp) {
         showMsg(resp.ok ? '¡Bienvenido, ' + (resp.nombre || '') + '!' : (resp.msg || 'Error'), resp.ok);
-        if (resp.ok) setTimeout(function () { window.location = 'index.html'; }, 800);
+        if (resp.ok) {
+          const redirectUrl = sessionStorage.getItem('postLoginRedirect') || 'index.html';
+          sessionStorage.removeItem('postLoginRedirect');
+          setTimeout(function () { window.location.href = redirectUrl; }, 800);
+        }
       });
   });
 }
