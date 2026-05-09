@@ -25,12 +25,14 @@ final class ContactoController
             return;
         }
 
-        $nombre = Input::postPlainString('nombre', 120);
+        // Validar formato del nombre: solo letras, espacios, apóstrofes y guiones
+        $nombre = Input::postRegex('nombre', '/^[\p{L}\s\'-]+$/u', 120);
         $email = Input::postEmail('email');
+        // El mensaje ya es sanitizado con htmlspecialchars en postPlainString
         $mensaje = Input::postPlainString('mensaje', 2000);
 
-        if ($email === null || strlen($nombre) < 2 || strlen($mensaje) < 5) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Datos inválidos'], 400);
+        if ($nombre === null || $email === null || strlen($nombre) < 2 || strlen($mensaje) < 5) {
+            JsonResponse::send(['ok' => false, 'msg' => 'Datos inválidos o formato de nombre incorrecto'], 400);
             return;
         }
 

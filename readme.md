@@ -1,6 +1,6 @@
 # HIGHMIND — Tienda online
 
-Tienda de ropa con catálogo, carrito por usuario, autenticación, contacto y checkout con **Mercado Pago** embebido (Card Payment Brick). El backend es **PHP 8** en estilo MVC; el frontend es estático (**HTML, CSS, JS**) bajo `public_html/frontend/`. Pensado para despliegue en hosting compartido (Apache + MySQL/MariaDB), con la lógica de aplicación fuera del document root.
+Tienda de ropa con catálogo, carrito por usuario, autenticación, contacto y checkout con **Mercado Pago** embebido (Card Payment Brick). El backend es **PHP 8** en estilo MVC; el frontend es estático (**HTML, CSS, JS**) bajo `public_html/frontend/`. Pensado para despliegue en hosting compartido (Apache + MySQL/MariaDB), con la lógica de aplicación fuera del document root. aaa
 
 ---
 
