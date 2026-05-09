@@ -19,7 +19,7 @@ final class UsuarioController
 
         match ($action) {
             'csrf' => $this->csrf(),
-            'check' => $this->check(),
+            'check' => $this->check($model),
             'register' => $this->register($model),
             'login' => $this->login($model),
             'logout' => $this->logout(),
@@ -36,18 +36,22 @@ final class UsuarioController
         JsonResponse::send(['ok' => true, 'csrf_token' => Csrf::token()]);
     }
 
-    private function check(): void
+    private function check(Usuario $model): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
             JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
             return;
         }
         if (isset($_SESSION['usuario_id'])) {
+            $uid = (int) $_SESSION['usuario_id'];
+            $esAdmin = $model->esAdminPorId($uid);
+            $_SESSION['usuario_es_admin'] = $esAdmin;
             JsonResponse::send([
                 'ok' => true,
-                'id' => $_SESSION['usuario_id'],
+                'id' => $uid,
                 'nombre' => $_SESSION['usuario_nombre'],
                 'email' => $_SESSION['usuario_email'],
+                'es_admin' => $esAdmin,
             ]);
             return;
         }
@@ -117,7 +121,13 @@ final class UsuarioController
             $_SESSION['usuario_id'] = $user['id'];
             $_SESSION['usuario_nombre'] = $user['nombre'];
             $_SESSION['usuario_email'] = $email;
-            JsonResponse::send(['ok' => true, 'nombre' => $user['nombre'], 'email' => $email]);
+            $_SESSION['usuario_es_admin'] = (int) ($user['es_admin'] ?? 0) === 1;
+            JsonResponse::send([
+                'ok' => true,
+                'nombre' => $user['nombre'],
+                'email' => $email,
+                'es_admin' => (int) ($user['es_admin'] ?? 0) === 1,
+            ]);
             return;
         }
         JsonResponse::send(['ok' => false, 'msg' => 'Email o contraseña incorrectos']);

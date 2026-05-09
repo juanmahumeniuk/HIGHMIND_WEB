@@ -72,4 +72,50 @@ final class Carrito
             'total_items' => (int) array_sum(array_column($carrito, 'cantidad')),
         ];
     }
+
+    public function contarItemsPorUsuario(int $usuarioId): int
+    {
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM carrito_items WHERE usuario_id = ?');
+        $stmt->execute([$usuarioId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function adminListarTodos(): array
+    {
+        $stmt = Database::pdo()->query(
+            'SELECT ci.id, ci.usuario_id, ci.producto_id, ci.cantidad, ci.agregado,
+                    u.email AS usuario_email, u.nombre AS usuario_nombre,
+                    p.nombre AS producto_nombre, p.precio AS producto_precio, p.img AS producto_img
+             FROM carrito_items ci
+             INNER JOIN usuarios u ON u.id = ci.usuario_id
+             INNER JOIN productos p ON p.id = ci.producto_id
+             ORDER BY ci.agregado DESC, ci.id DESC'
+        );
+        return $stmt->fetchAll() ?: [];
+    }
+
+    public function adminActualizarCantidadPorItemId(int $itemId, int $cantidad): bool
+    {
+        if ($cantidad < 1) {
+            return false;
+        }
+        $stmt = Database::pdo()->prepare('UPDATE carrito_items SET cantidad = ? WHERE id = ?');
+        return $stmt->execute([$cantidad, $itemId]) && $stmt->rowCount() > 0;
+    }
+
+    public function adminEliminarLinea(int $itemId): bool
+    {
+        $stmt = Database::pdo()->prepare('DELETE FROM carrito_items WHERE id = ?');
+        $stmt->execute([$itemId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function adminVaciarUsuario(int $usuarioId): void
+    {
+        $stmt = Database::pdo()->prepare('DELETE FROM carrito_items WHERE usuario_id = ?');
+        $stmt->execute([$usuarioId]);
+    }
 }
