@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin | HIGHMIND</title>
+  <link rel="stylesheet" href="admin.css">
+  <link rel="icon" href="../frontend/img/logo.jpeg">
+</head>
+<body>
+  <header class="admin-header">
+    <div class="admin-header-brand">
+      <strong>HIGHMIND</strong><span class="sub">Panel administrativo</span>
+    </div>
+    <div class="admin-header-actions">
+      <nav class="admin-site-nav" aria-label="Sitio público">
+        <a href="../frontend/index.html" class="btn btn-small">Inicio</a>
+        <a href="../frontend/tienda.html" class="btn btn-small">Tienda</a>
+        <a href="../frontend/contacto.html" class="btn btn-small">Contacto</a>
+      </nav>
+      <span id="user-pill" class="muted"></span>
+      <button type="button" class="btn btn-small" id="btn-logout" style="display:none">Cerrar sesión</button>
+    </div>
+  </header>
+  <div id="msg" style="padding:0.35rem 1.25rem;min-height:1.25rem;font-size:0.88rem"></div>
+
+  <div id="gate">
+    <h2>Acceso</h2>
+    <p class="muted">Iniciá sesión con una cuenta que tenga permisos de administrador.</p>
+    <form id="gate-form">
+      <label for="gate-email">Email</label>
+      <input id="gate-email" type="email" autocomplete="username" required>
+      <label for="gate-password">Contraseña</label>
+      <input id="gate-password" type="password" autocomplete="current-password" required>
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem">Entrar</button>
+    </form>
+    <p class="muted" style="margin-top:1rem">
+      <a href="../frontend/tienda.html">Volver a la tienda</a>
+      ·
+      <a href="../frontend/login.html">Login en el sitio</a>
+    </p>
+  </div>
+
+  <div id="denied" style="display:none">
+    <h2>Sin permisos</h2>
+    <p class="muted">Tu sesión está activa pero esta cuenta no es administradora. Pedí que ejecuten en la base:</p>
+    <pre style="background:#0d0d0d;padding:0.75rem;border-radius:0.5rem;border:1px solid #222;font-size:0.8rem;overflow:auto">UPDATE usuarios SET es_admin = 1 WHERE email = 'tu@email.com';</pre>
+    <p><a href="../frontend/tienda.html">Ir a la tienda</a></p>
+  </div>
+
+  <div id="app-panel">
+    <aside class="admin-sidebar">
+      <button type="button" data-section="productos">Productos</button>
+      <button type="button" data-section="usuarios">Usuarios</button>
+      <button type="button" data-section="carrito">Carrito</button>
+      <button type="button" data-section="contacto">Contacto</button>
+    </aside>
+    <main class="admin-main" id="content"></main>
+  </div>
+
+  <div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal" id="modal-dialog">
+      <h3 id="modal-title"></h3>
+      <div id="modal-body"></div>
+      <div id="modal-actions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+  <script>
+    (function () {
+      var panel = document.getElementById('app-panel');
+      var obs = new MutationObserver(function () {
+        var vis = panel.classList.contains('visible');
+        document.getElementById('btn-logout').style.display = vis ? 'inline-flex' : 'none';
+      });
+      obs.observe(panel, { attributes: true, attributeFilter: ['class'] });
+    })();
+  </script>
+</body>
+</html>
