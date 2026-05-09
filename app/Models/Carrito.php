@@ -49,6 +49,16 @@ final class Carrito
         $stmt->execute([$usuarioId]);
     }
 
+    public function obtenerCantidadItem(int $usuarioId, int $productoId): int
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT cantidad FROM carrito_items WHERE usuario_id = ? AND producto_id = ?'
+        );
+        $stmt->execute([$usuarioId, $productoId]);
+        $row = $stmt->fetch();
+        return $row ? (int) $row['cantidad'] : 0;
+    }
+
     /**
      * @return array{carrito: list<array<string, mixed>>, subtotal: float|int, total_items: int}
      */

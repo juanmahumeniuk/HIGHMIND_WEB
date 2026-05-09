@@ -48,14 +48,23 @@ final class Usuario
     }
 
     /**
-     * @return array{id: int, nombre: string, password: string, es_admin: int}|null
+     * @return array{id: int, nombre: string, email: string, password: string|null, es_admin: int}|null
      */
     public function buscarPorEmail(string $email): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT id, nombre, password, COALESCE(es_admin, 0) AS es_admin FROM usuarios WHERE email = ?'
+            'SELECT id, nombre, email, password, COALESCE(es_admin, 0) AS es_admin FROM usuarios WHERE email = ?'
         );
         $stmt->execute([$email]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    /** @return array{id: int, nombre: string, email: string}|null */
+    public function buscarPorFirebaseUid(string $uid): ?array
+    {
+        $stmt = Database::pdo()->prepare('SELECT id, nombre, email FROM usuarios WHERE firebase_uid = ?');
+        $stmt->execute([$uid]);
         $row = $stmt->fetch();
         return $row ?: null;
     }
@@ -82,6 +91,21 @@ final class Usuario
         $stmt->execute([$id]);
         $row = $stmt->fetch();
         return $row ?: null;
+    }
+
+    public function crearDesdeFirebase(string $uid, string $email, string $nombre): int
+    {
+        $stmt = Database::pdo()->prepare(
+            'INSERT INTO usuarios (firebase_uid, email, nombre) VALUES (?, ?, ?)'
+        );
+        $stmt->execute([$uid, $email, $nombre]);
+        return (int) Database::pdo()->lastInsertId();
+    }
+
+    public function vincularFirebaseUid(int $id, string $uid): void
+    {
+        $stmt = Database::pdo()->prepare('UPDATE usuarios SET firebase_uid = ? WHERE id = ?');
+        $stmt->execute([$uid, $id]);
     }
 
     public function adminActualizarPerfil(int $id, string $email, string $nombre, int $esAdmin): bool

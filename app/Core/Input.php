@@ -12,7 +12,7 @@ final class Input
             return '';
         }
         $v = strip_tags($v);
-        $v = trim($v);
+        $v = htmlspecialchars(trim($v), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         if ($maxLen < 1) {
             return '';
         }
@@ -20,6 +20,18 @@ final class Input
             return mb_substr($v, 0, $maxLen, 'UTF-8');
         }
         return substr($v, 0, $maxLen);
+    }
+
+    public static function postRegex(string $key, string $pattern, int $maxLen): ?string
+    {
+        $v = self::postPlainString($key, $maxLen);
+        if ($v === '') {
+            return null;
+        }
+        if (preg_match($pattern, $v)) {
+            return $v;
+        }
+        return null;
     }
 
     public static function postEmail(string $key): ?string

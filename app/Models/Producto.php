@@ -36,6 +36,19 @@ final class Producto
         }
     }
 
+    public function obtenerStock(int $id): int
+    {
+        $pdo = Database::pdo();
+        try {
+            $stmt = $pdo->prepare('SELECT stock FROM productos WHERE id = ?');
+            $stmt->execute([$id]);
+            $row = $stmt->fetch();
+            return $row ? (int) $row['stock'] : 0;
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
