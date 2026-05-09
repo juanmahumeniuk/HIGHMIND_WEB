@@ -9,6 +9,7 @@ use App\Core\Input;
 use App\Core\JsonResponse;
 use App\Core\Session;
 use App\Models\Usuario;
+use PDOException;
 
 final class FirebaseController
 {
@@ -60,27 +61,35 @@ final class FirebaseController
         $email  = $firebaseUser['email'];
         $nombre = $firebaseUser['name'];
 
-        // Buscar o crear usuario en la BD
-        $model   = new Usuario();
-        $usuario = $model->buscarPorFirebaseUid($uid);
+        try {
+            // Buscar o crear usuario en la BD
+            $model   = new Usuario();
+            $usuario = $model->buscarPorFirebaseUid($uid);
 
-        if ($usuario === null) {
-            // Si ya existe un usuario con ese email (registrado antes), vincularlo
-            $existente = $model->buscarPorEmail($email);
-            if ($existente !== null) {
-                $model->vincularFirebaseUid((int) $existente['id'], $uid);
-                $usuario = $existente;
-            } else {
-                $id      = $model->crearDesdeFirebase($uid, $email, $nombre);
-                $usuario = ['id' => $id, 'nombre' => $nombre, 'email' => $email];
+            if ($usuario === null) {
+                // Si ya existe un usuario con ese email (registrado antes), vincularlo
+                $existente = $model->buscarPorEmail($email);
+                if ($existente !== null) {
+                    $model->vincularFirebaseUid((int) $existente['id'], $uid);
+                    $usuario = $existente;
+                } else {
+                    $id      = $model->crearDesdeFirebase($uid, $email, $nombre);
+                    $usuario = ['id' => $id, 'nombre' => $nombre, 'email' => $email];
+                }
             }
-        }
 
-        // Establecer sesión PHP (misma estructura que usaba el login clásico)
-        session_regenerate_id(true);
-        $_SESSION['usuario_id']     = (int) $usuario['id'];
-        $_SESSION['usuario_nombre'] = (string) ($usuario['nombre'] ?? $nombre);
-        $_SESSION['usuario_email']  = (string) ($usuario['email'] ?? $email);
+            // Establecer sesión PHP (misma estructura que usaba el login clásico)
+            session_regenerate_id(true);
+            $_SESSION['usuario_id']     = (int) $usuario['id'];
+            $_SESSION['usuario_nombre'] = (string) ($usuario['nombre'] ?? $nombre);
+            $_SESSION['usuario_email']  = (string) ($usuario['email'] ?? $email);
+        } catch (PDOException) {
+            JsonResponse::send([
+                'ok'  => false,
+                'msg' => 'Error de base de datos al registrar el usuario. Ejecutá en MySQL la migración database/migrations/002_add_firebase_uid.sql (columna firebase_uid en usuarios).',
+            ], 500);
+            return;
+        }
 
         JsonResponse::send([
             'ok'     => true,
