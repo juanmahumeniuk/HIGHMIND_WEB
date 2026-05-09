@@ -647,6 +647,23 @@ header, .navbar, main, .login-box, footer {
     padding: 0 0.9em;
 }
 
+.login-subtitle {
+    text-align: center;
+    color: var(--color-muted);
+    font-size: 0.97rem;
+    margin-bottom: 1.6em;
+    margin-top: -0.4em;
+}
+
+.btn-auth0 {
+    width: 100%;
+    padding: 1em 0;
+    font-size: 1.09rem;
+    border-radius: var(--radius-lg);
+    margin-top: 0.2em;
+    letter-spacing: 0.03em;
+}
+
 .login-msg {
     min-height: 1.8em;
     font-size: 1.06rem;

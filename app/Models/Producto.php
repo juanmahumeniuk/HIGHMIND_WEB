@@ -35,4 +35,17 @@ final class Producto
             throw $e;
         }
     }
+
+    public function obtenerStock(int $id): int
+    {
+        $pdo = Database::pdo();
+        try {
+            $stmt = $pdo->prepare('SELECT stock FROM productos WHERE id = ?');
+            $stmt->execute([$id]);
+            $row = $stmt->fetch();
+            return $row ? (int) $row['stock'] : 0;
+        } catch (PDOException $e) {
+            return 0; // If column doesn't exist, assume 0 or handle accordingly
+        }
+    }
 }

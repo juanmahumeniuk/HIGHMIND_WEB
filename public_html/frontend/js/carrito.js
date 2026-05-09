@@ -372,7 +372,9 @@ function setupFinalizarCompra() {
               '(variable CHECKOUT_PAYMENTS_ENABLED en el servidor).'
           );
         } else if (lock === 'login_required') {
-          window.alert('Iniciá sesión para finalizar la compra.');
+          sessionStorage.setItem('postLoginRedirect', window.location.href);
+          sessionStorage.setItem('openCartOnLoad', 'true');
+          window.location.href = 'login.html';
         } else if (lock === 'not_configured') {
           window.alert('Los pagos no están configurados. Contactá al administrador del sitio.');
         } else {
@@ -448,4 +450,11 @@ document.addEventListener('DOMContentLoaded', function () {
   setupCerrarModal();
   actualizarBadgeCarrito();
   applyCheckoutButtonState();
+
+  if (sessionStorage.getItem('openCartOnLoad') === 'true') {
+    sessionStorage.removeItem('openCartOnLoad');
+    setTimeout(function() {
+      mostrarModalCarrito();
+    }, 300);
+  }
 });

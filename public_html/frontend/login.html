@@ -11,7 +11,7 @@
 <body>
     <!-- Fondo borroso -->
     <div class="fondo"></div>
-    
+
     <header>
         <nav class="navbar">
         <a href="#" class="logo">
@@ -35,20 +35,11 @@
     <main>
         <section class="login-section">
             <div class="login-box">
-                <h2>Iniciar sesión</h2>
-                <form id="login-form" autocomplete="off">
-                    <input type="email" id="login-email" required placeholder="Email">
-                    <input type="password" id="login-password" required placeholder="Contraseña">
-                    <button type="submit" class="btn btn-primary">Ingresar</button>
-                </form>
-                <div class="login-divider"><span>o</span></div>
-                <h2>Crear cuenta</h2>
-                <form id="register-form" autocomplete="off">
-                    <input type="text" id="reg-nombre" required placeholder="Nombre">
-                    <input type="email" id="reg-email" required placeholder="Email">
-                    <input type="password" id="reg-password" required placeholder="Contraseña (mínimo 6)">
-                    <button type="submit" class="btn btn-primary">Registrarme</button>
-                </form>
+                <h2>Acceder a tu cuenta</h2>
+                <p class="login-subtitle">Ingresá o creá tu cuenta de forma segura.</p>
+                <button id="firebase-google-btn" class="btn btn-primary btn-auth0">
+                    Ingresar con Google
+                </button>
                 <div id="login-msg" class="login-msg"></div>
             </div>
         </section>
@@ -56,6 +47,11 @@
     <footer>
         <p>&copy; 2025 HIGHMIND. Todos los derechos reservados.</p>
     </footer>
+
+    <!-- Firebase SDK v9 (compat mode — funciona con scripts globales) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
     <script src="js/config.js"></script>
     <script src="js/login.js"></script>
     <script src="js/navbar.js"></script>

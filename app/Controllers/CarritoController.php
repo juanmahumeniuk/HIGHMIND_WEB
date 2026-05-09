@@ -70,6 +70,16 @@ final class CarritoController
         if ($cantidad < 1) {
             $cantidad = 1;
         }
+
+        $productoModel = new \App\Models\Producto();
+        $stockDisponible = $productoModel->obtenerStock($productoId);
+        $cantidadActual = $model->obtenerCantidadItem($usuarioId, $productoId);
+
+        if (($cantidadActual + $cantidad) > $stockDisponible) {
+            JsonResponse::send(['ok' => false, 'msg' => 'Stock insuficiente'], 400);
+            return;
+        }
+
         $model->agregarOIncrementar($usuarioId, $productoId, $cantidad);
         JsonResponse::send(['ok' => true]);
     }
@@ -88,6 +98,15 @@ final class CarritoController
         if ($cantidad < 1) {
             $cantidad = 1;
         }
+
+        $productoModel = new \App\Models\Producto();
+        $stockDisponible = $productoModel->obtenerStock($productoId);
+
+        if ($cantidad > $stockDisponible) {
+            JsonResponse::send(['ok' => false, 'msg' => 'Stock insuficiente'], 400);
+            return;
+        }
+
         $model->actualizarCantidad($usuarioId, $productoId, $cantidad);
         JsonResponse::send(['ok' => true]);
     }
