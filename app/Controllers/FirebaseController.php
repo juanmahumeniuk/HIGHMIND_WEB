@@ -80,9 +80,11 @@ final class FirebaseController
 
             // Establecer sesión PHP (misma estructura que usaba el login clásico)
             session_regenerate_id(true);
-            $_SESSION['usuario_id']     = (int) $usuario['id'];
-            $_SESSION['usuario_nombre'] = (string) ($usuario['nombre'] ?? $nombre);
-            $_SESSION['usuario_email']  = (string) ($usuario['email'] ?? $email);
+            $uidSession = (int) $usuario['id'];
+            $_SESSION['usuario_id']       = $uidSession;
+            $_SESSION['usuario_nombre']   = (string) ($usuario['nombre'] ?? $nombre);
+            $_SESSION['usuario_email']   = (string) ($usuario['email'] ?? $email);
+            $_SESSION['usuario_es_admin'] = $model->esAdminPorId($uidSession);
         } catch (PDOException) {
             JsonResponse::send([
                 'ok'  => false,
