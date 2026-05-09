@@ -101,6 +101,15 @@ final class PagoController
             return;
         }
 
+        $productoModel = new \App\Models\Producto();
+        foreach ($carrito['carrito'] as $item) {
+            $stock = $productoModel->obtenerStock((int)$item['producto_id']);
+            if ($item['cantidad'] > $stock) {
+                JsonResponse::send(['ok' => false, 'msg' => 'El producto "' . $item['nombre'] . '" no tiene stock suficiente (' . $stock . ' disponibles)'], 400);
+                return;
+            }
+        }
+
         $accessToken = Env::get('MP_ACCESS_TOKEN', '') ?? '';
         if ($accessToken === '') {
             JsonResponse::send(['ok' => false, 'msg' => 'Falta configurar MP_ACCESS_TOKEN'], 500);
