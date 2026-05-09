@@ -76,4 +76,42 @@ final class Input
         }
         return $v;
     }
+
+    public static function postNonNegativeInt(string $key, int $fallback = 0): int
+    {
+        $raw = $_POST[$key] ?? $fallback;
+        $v = filter_var($raw, FILTER_VALIDATE_INT);
+        if ($v === false || $v < 0) {
+            return max(0, $fallback);
+        }
+        return $v;
+    }
+
+    /** Precio para DECIMAL(12,2); null si inválido. */
+    public static function postMoneyDecimal(string $key): ?string
+    {
+        $raw = $_POST[$key] ?? '';
+        if (!is_string($raw)) {
+            return null;
+        }
+        $raw = trim(str_replace(',', '.', $raw));
+        if ($raw === '' || !is_numeric($raw)) {
+            return null;
+        }
+        $f = (float) $raw;
+        if ($f < 0 || $f > 99999999.99) {
+            return null;
+        }
+        return number_format($f, 2, '.', '');
+    }
+
+    /** 0 o 1 desde checkbox / select. */
+    public static function postBit(string $key): int
+    {
+        $v = $_POST[$key] ?? 0;
+        if ($v === '1' || $v === 1 || $v === true || $v === 'on' || $v === 'true') {
+            return 1;
+        }
+        return 0;
+    }
 }

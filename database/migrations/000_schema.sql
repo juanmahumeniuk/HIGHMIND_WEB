@@ -1,11 +1,4 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Servidor: 127.0.0.1:3306
--- Tiempo de generación: 05-06-2025 a las 23:26:35
--- Versión del servidor: 10.11.10-MariaDB
--- Versión de PHP: 7.2.34
+
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +11,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Base de datos: `u632054512_highmind`
+
 --
 
 -- --------------------------------------------------------
@@ -26,6 +19,7 @@ SET time_zone = "+00:00";
 --
 -- Estructura de tabla para la tabla `carrito_items`
 --
+
 
 CREATE TABLE `carrito_items` (
   `id` int(11) NOT NULL,
