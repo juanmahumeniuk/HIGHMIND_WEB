@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrega Pruebas de API y Mocking - Clase 05</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+        }
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+            color: #333;
+        }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: Consolas, monospace;
+            color: #d63384;
+        }
+        .evidencia {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: Consolas, monospace;
+            white-space: pre-wrap;
+            margin-top: 15px;
+        }
+        .green { color: #4CAF50; }
+        .grey { color: #808080; }
+    </style>
+</head>
+<body>
+
+    <h1>Entrega Pruebas de API y Mocking - Clase 05</h1>
+
+    <h2>1. Tabla de Diseño de Pruebas</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID Caso</th>
+                <th>Tipo de Prueba</th>
+                <th>Objetivo</th>
+                <th>Entradas</th>
+                <th>Resultado Esperado</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>TC-01</strong></td>
+                <td><strong>API Real</strong></td>
+                <td>Verificar que el endpoint de productos devuelve la lista activa correctamente.</td>
+                <td>Solicitud <code>GET</code> a <code>/api/producto.php</code></td>
+                <td>Status 200 OK. La respuesta debe ser un arreglo JSON conteniendo objetos con atributos de producto (id, nombre, precio).</td>
+            </tr>
+            <tr>
+                <td><strong>TC-02</strong></td>
+                <td><strong>API Real</strong></td>
+                <td>Validar que no se puede agregar al carrito sin estar autenticado.</td>
+                <td>Solicitud <code>POST</code> a <code>/api/carrito.php</code> con <code>{ action: 'add', id: 1, qty: 1 }</code> (sin cookie de sesión válida).</td>
+                <td>Status 401 Unauthorized. JSON de respuesta indicando <code>{"ok": false, "msg": "No autorizado"}</code>.</td>
+            </tr>
+            <tr>
+                <td><strong>TC-03</strong></td>
+                <td><strong>Mocking</strong></td>
+                <td>Comprobar que la UI maneja correctamente una caída del backend (Error 500) al listar productos.</td>
+                <td>Intercepción de red a <code>**/api/producto*</code> forzando un Status 500 y error simulado. Navegación a <code>/frontend/index.html</code>.</td>
+                <td>La UI no se rompe; se visualiza un mensaje amigable de error (<code>.error-message</code>) alertando al usuario.</td>
+            </tr>
+            <tr>
+                <td><strong>TC-04</strong></td>
+                <td><strong>Mocking</strong></td>
+                <td>Validar el "empty state" del catálogo de productos.</td>
+                <td>Intercepción de red a <code>**/api/producto*</code> retornando un array vacío <code>[]</code>. Navegación a <code>/frontend/index.html</code>.</td>
+                <td>Se oculta la grilla de productos y aparece un mensaje de <code>.no-products</code> indicando que no hay productos disponibles.</td>
+            </tr>
+            <tr>
+                <td><strong>TC-05</strong></td>
+                <td><strong>Híbrida</strong></td>
+                <td>Validar el flujo de visualización de ítems en el carrito aislando la preparación de datos por API.</td>
+                <td>1. <code>POST</code> a <code>/api/carrito.php</code> agregando cantidad 3 del producto ID 1.<br>2. Navegación manual a <code>/frontend/carrito.html</code>.</td>
+                <td>La página del carrito carga y el input de cantidad para el producto reflejado en el DOM es exactamente '3'.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>2. Explicación de Estrategia Utilizada</h2>
+    <ul>
+        <li><strong>Por qué API Real (TC-01, TC-02):</strong> El testing puro de API es fundamental para asegurar las reglas de negocio de Highmind Web en el backend (ej. autorización del carrito y formato de salida del catálogo). Es mucho más rápido que interactuar por UI y permite detectar fallas directamente en la capa de servicios.</li>
+        <li><strong>Por qué Mocking (TC-03, TC-04):</strong> Replicar un error 500 real del servidor obligaría a bajar el servicio local, lo cual arruinaría las otras pruebas. El mocking a través de <code>page.route()</code> aísla este escenario complejo permitiendo verificar el comportamiento defensivo del frontend. De igual manera, simular un catálogo vacío evita tener que borrar (y luego restaurar) los productos de la base de datos real.</li>
+        <li><strong>Por qué Prueba Híbrida (TC-05):</strong> Para validar que el carrito de compras visualice correctamente los items, si lo hiciéramos todo por UI tendríamos que buscar el producto, hacer clic, agregarlo, y luego ir al carrito (flujo muy largo y frágil "flaky"). Al preparar el estado (agregar al carrito) de forma directa por API y luego validar en UI, la prueba se vuelve muchísimo más rápida y enfocada estrictamente en probar la "renderización" del carrito.</li>
+    </ul>
+
+    <h2>3. Evidencia de Ejecución</h2>
+    <p>Para ejecutar estas pruebas, se debe correr el comando <code>npx playwright test tests/clase-05/</code>. A continuación se muestra la salida exitosa de las pruebas:</p>
+    
+    <div class="evidencia">PS C:\Users\gonza\Documents\GONZALO\Desar. de Soft ITU\3er Semestre\Metodologia y Testing\HIGHMIND_WEB> npx playwright test tests/clase-05/
+
+Running 5 tests using 1 worker
+
+  <span class="green">✓</span>  <span class="grey">1 tests/clase-05/api.spec.js:6:5 › Pruebas de API - Highmind Web › Verificar obtención de productos activos (345ms)</span>
+  <span class="green">✓</span>  <span class="grey">2 tests/clase-05/api.spec.js:21:5 › Pruebas de API - Highmind Web › Intentar agregar al carrito sin estar autenticado (401) (122ms)</span>
+  <span class="green">✓</span>  <span class="grey">3 tests/clase-05/mocking.spec.js:5:5 › Pruebas con Mocking/Intercepción - Highmind Web › Simular error 500 al intentar cargar productos y validar UI (610ms)</span>
+  <span class="green">✓</span>  <span class="grey">4 tests/clase-05/mocking.spec.js:25:5 › Pruebas con Mocking/Intercepción - Highmind Web › Mockear lista de productos vacía para validar el "empty state" (480ms)</span>
+  <span class="green">✓</span>  <span class="grey">5 tests/clase-05/hybrid.spec.js:5:5 › Pruebas Híbridas - Highmind Web › Preparar carrito vía API y validar visualización en UI (850ms)</span>
+
+  <span class="green">5 passed</span> (2.4s)</div>
+
+</body>
+</html>

@@ -28,4 +28,3 @@ Para ejecutar estas pruebas, se debe correr el siguiente comando dentro de la ca
 npx playwright test tests/clase-05/ --headed
 ```
 
-*(Nota para la entrega: Adjuntar aquí una captura de pantalla de la terminal mostrando todos los tests en verde o el reporte HTML generado por Playwright `npx playwright show-report`).*
