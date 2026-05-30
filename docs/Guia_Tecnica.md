@@ -103,3 +103,18 @@ Orden de carga recomendado: `config.js` → `api-client.js` → `dom.js` → `au
 | `carrito.js` | Modal carrito, Mercado Pago |
 | `login.js` | Formularios login/registro en `login.html` |
 | `admin/admin.js` | Panel admin CRUD |
+
+---
+
+## Estructura del repositorio
+
+| Ruta | Contenido |
+| --- | --- |
+| `app/` | Controladores, modelos, core, servicios |
+| `database/migrations/` | Esquema SQL versionado |
+| `database/patches/` | Scripts one-off para BDs existentes |
+| `docs/changelog/` | Historial de cambios (`CHANGES-9.xx.md`) |
+| `docs/gestion/`, `docs/pruebas/` | Documentación académica / QA |
+| `public_html/` | Sitio, admin y front controller API |
+| `scripts/run.sh` | Servidor de desarrollo + reset MySQL |
+| `tests/e2e/` | Specs Playwright |
