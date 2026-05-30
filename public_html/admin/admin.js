@@ -1,33 +1,8 @@
 (function () {
   'use strict';
 
-  function apiUrl(path) {
-    var clean = String(path).replace(/^\//, '');
-    return new URL('../api/' + clean, window.location.href).href;
-  }
-
-  var csrfCache = null;
-
-  function getCsrf() {
-    if (csrfCache) {
-      return Promise.resolve(csrfCache);
-    }
-    return fetch(apiUrl('usuarios?action=csrf'), { credentials: 'include' })
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (d) {
-        if (!d.ok || !d.csrf_token) {
-          throw new Error('CSRF');
-        }
-        csrfCache = d.csrf_token;
-        return csrfCache;
-      });
-  }
-
-  function resetCsrf() {
-    csrfCache = null;
-  }
+  var getCsrf = window.getCsrfToken;
+  var resetCsrf = window.resetCsrfTokenCache;
 
   function setMsg(text, ok) {
     var el = document.getElementById('msg');
@@ -385,10 +360,6 @@
         b1.addEventListener('click', function () {
           modalUsuario(u);
         });
-        var b2 = el('button', { class: 'btn btn-small', type: 'button', text: 'Clave' });
-        b2.addEventListener('click', function () {
-          modalPassword(u);
-        });
         var b3 = el('button', { class: 'btn btn-small btn-danger', type: 'button', text: 'Eliminar' });
         b3.addEventListener('click', function () {
           if (!confirm('¿Eliminar usuario? Debe tener carrito vacío.')) return;
@@ -398,8 +369,6 @@
           });
         });
         td.appendChild(b1);
-        td.appendChild(document.createTextNode(' '));
-        td.appendChild(b2);
         td.appendChild(document.createTextNode(' '));
         td.appendChild(b3);
         tr.appendChild(td);
@@ -472,27 +441,6 @@
           }
         });
       }
-    });
-  }
-
-  function modalPassword(u) {
-    var m = openModal('Nueva contraseña — ' + u.email);
-    var pw = el('input', { type: 'password', placeholder: 'Mínimo 6 caracteres' });
-    m.body.appendChild(el('label', { text: 'Nueva contraseña' }));
-    m.body.appendChild(pw);
-    var btnSave = el('button', { class: 'btn btn-primary', type: 'button', text: 'Actualizar' });
-    var btnCancel = el('button', { class: 'btn', type: 'button', text: 'Cancelar' });
-    btnCancel.addEventListener('click', closeModal);
-    m.actions.appendChild(btnCancel);
-    m.actions.appendChild(btnSave);
-    btnSave.addEventListener('click', function () {
-      adminPost('admin/usuarios/' + u.id, {
-        action: 'update_password',
-        password: pw.value,
-      }).then(function (r) {
-        setMsg(r.json.msg || (r.json.ok ? 'Actualizado' : 'Error'), r.json.ok);
-        if (r.json.ok) closeModal();
-      });
     });
   }
 
@@ -685,18 +633,17 @@
     document.getElementById('denied').style.display = 'none';
     var panel = document.getElementById('app-panel');
     panel.classList.add('visible');
-    document.getElementById('user-pill').textContent = state.user.email || '';
     renderSection();
   }
 
   function showDenied() {
     document.getElementById('gate').style.display = 'none';
-    document.getElementById('denied').style.display = 'block';
+    document.getElementById('denied').style.display = 'flex';
     document.getElementById('app-panel').classList.remove('visible');
   }
 
   function showGate() {
-    document.getElementById('gate').style.display = 'block';
+    document.getElementById('gate').style.display = 'flex';
     document.getElementById('denied').style.display = 'none';
     document.getElementById('app-panel').classList.remove('visible');
   }
@@ -708,20 +655,14 @@
         renderSection();
       });
     });
-    document.getElementById('btn-logout').addEventListener('click', function () {
-      adminPost('usuarios', { action: 'logout' }).then(function () {
-        resetCsrf();
-        location.reload();
-      });
-    });
     document.getElementById('gate-form').addEventListener('submit', function (e) {
       e.preventDefault();
       var email = document.getElementById('gate-email').value.trim();
       var password = document.getElementById('gate-password').value;
       resetCsrf();
-      adminPost('usuarios', { action: 'login', email: email, password: password }).then(function (r) {
-        if (!r.json.ok) {
-          setMsg(r.json.msg || 'Credenciales inválidas', false);
+      firebaseSignIn(email, password).then(function (resp) {
+        if (!resp.ok) {
+          setMsg(resp.msg || 'Credenciales inválidas', false);
           return;
         }
         checkSession().then(function (s) {
@@ -733,6 +674,8 @@
             showPanel();
           }
         });
+      }).catch(function (err) {
+        setMsg(err.message || 'Error al iniciar sesión', false);
       });
     });
   }

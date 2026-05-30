@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tienda | HIGHMIND</title>
     <link rel="stylesheet" href="css/estilo.css">
-    <!-- Google Fonts: Roboto (Material You) -->
-    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Archivo (display editorial) + Roboto (cuerpo) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="icon" href="img/logo.jpeg">
     <meta name="description" content="Catálogo de productos HIGHMIND. Tienda online.">
 </head>
@@ -37,16 +39,58 @@
     </header>
     
     <main>
-        <div class="productos-grid" id="productos-grid"></div>
+        <section class="catalog-hero">
+            <div class="catalog-hero-inner">
+                <span class="kicker">Catálogo completo</span>
+                <h1 class="catalog-title">La tienda</h1>
+                <p class="catalog-sub">Toda la colección HIGHMIND en un solo lugar. Encontrá tu próxima prenda favorita.</p>
+            </div>
+        </section>
+        <section class="productos section">
+            <div class="productos-grid" id="productos-grid"></div>
+        </section>
     </main>
-    <footer>
-        <p>&copy; 2025 HIGHMIND. Todos los derechos reservados.</p>
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <a href="index.html" class="logo">
+                    <img src="img/logo.jpeg" alt="HIGHMIND" />
+                    <span>HIGHMIND</span>
+                </a>
+                <p class="footer-tagline">Tu mente, tu límite. Streetwear para los que no se detienen.</p>
+            </div>
+            <nav class="footer-cols" aria-label="Enlaces de pie de pagina">
+                <div class="footer-col">
+                    <h4>Tienda</h4>
+                    <a href="tienda.html">Catálogo</a>
+                    <a href="index.html#nuevos">Novedades</a>
+                    <a href="#">Lookbook</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Ayuda</h4>
+                    <a href="contacto.html">Contacto</a>
+                    <a href="#">Envíos</a>
+                    <a href="#">Cambios</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Seguinos</h4>
+                    <a href="#">Instagram</a>
+                    <a href="#">TikTok</a>
+                    <a href="#">WhatsApp</a>
+                </div>
+            </nav>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 HIGHMIND. Todos los derechos reservados.</p>
+        </div>
     </footer>
     <script src="https://sdk.mercadopago.com/js/v2"></script>
     <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/script.js"></script>
     <script src="js/carrito.js"></script>
     <script src="js/navbar.js"></script>
+    <script src="js/anim.js" defer></script>
 
         <!-- Modal Carrito -->
     <div id="modal-carrito" class="modal" style="display:none;">
@@ -73,18 +117,37 @@
     </div>
     
         <!-- Modal de producto -->
-    <div id="modal-producto" class="modal" style="display:none;">
+    <div id="modal-producto" class="modal modal-producto" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-nombre">
       <div class="modal-content-row">
         <div class="modal-img-box">
           <img id="modal-img" src="" alt="" class="modal-img-big">
+          <div class="modal-img-glow" aria-hidden="true"></div>
         </div>
         <div class="modal-details">
-          <span class="close-modal" id="cerrar-modal">&times;</span>
+          <button type="button" class="modal-close" id="cerrar-modal" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+          <span class="kicker modal-kicker">Detalle del producto</span>
           <h3 id="modal-nombre"></h3>
-          <div id="modal-extra" class="modal-precio"></div>
-          <p id="modal-descripcion"></p>
+          <div class="modal-meta">
+            <span id="modal-precio" class="modal-price"></span>
+            <span id="modal-stock" class="modal-stock-badge"></span>
+          </div>
+          <div class="modal-divider" aria-hidden="true"></div>
+          <p class="modal-desc-label">Descripción</p>
+          <p id="modal-descripcion" class="modal-desc-text"></p>
+          <ul class="modal-perks" aria-label="Beneficios">
+            <li>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              Envío a todo el país
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Compra segura
+            </li>
+          </ul>
           <div class="modal-actions">
-            <button class="btn btn-primary" id="agregar-carrito">Agregar al carrito</button>
+            <button type="button" class="btn btn-primary" id="agregar-carrito">Agregar al carrito</button>
           </div>
         </div>
       </div>

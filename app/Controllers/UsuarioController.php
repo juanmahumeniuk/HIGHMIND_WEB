@@ -6,11 +6,14 @@ namespace App\Controllers;
 use App\Core\Csrf;
 use App\Core\Input;
 use App\Core\JsonResponse;
+use App\Core\PostCsrfGuard;
 use App\Core\Session;
 use App\Models\Usuario;
 
 final class UsuarioController
 {
+    use PostCsrfGuard;
+
     public function handle(): void
     {
         Session::start();
@@ -40,39 +43,36 @@ final class UsuarioController
             JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
             return;
         }
-        if (isset($_SESSION['usuario_id'])) {
-            $uid = (int) $_SESSION['usuario_id'];
-            $esAdmin = $model->esAdminPorId($uid);
-            $_SESSION['usuario_es_admin'] = $esAdmin;
-            JsonResponse::send([
-                'ok' => true,
-                'id' => $uid,
-                'nombre' => $_SESSION['usuario_nombre'],
-                'email' => $_SESSION['usuario_email'],
-                'es_admin' => $esAdmin,
-            ]);
+        if (!isset($_SESSION['usuario_id'])) {
+            JsonResponse::send(['ok' => false]);
             return;
         }
-        JsonResponse::send(['ok' => false]);
-    }
 
-    private function assertMutatingPostWithCsrf(): bool
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
-            return false;
+        $uid = (int) $_SESSION['usuario_id'];
+        $usuario = $model->buscarPorId($uid);
+        if ($usuario === null) {
+            session_destroy();
+            JsonResponse::send(['ok' => false]);
+            return;
         }
-        $token = Input::postCsrfToken();
-        if ($token === '' || !Csrf::validate($token)) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Token de seguridad inválido'], 403);
-            return false;
-        }
-        return true;
+
+        $esAdmin = (int) $usuario['es_admin'] === 1;
+        $_SESSION['usuario_nombre'] = (string) $usuario['nombre'];
+        $_SESSION['usuario_email'] = (string) $usuario['email'];
+        $_SESSION['usuario_es_admin'] = $esAdmin;
+
+        JsonResponse::send([
+            'ok' => true,
+            'id' => $uid,
+            'nombre' => $usuario['nombre'],
+            'email' => $usuario['email'],
+            'es_admin' => $esAdmin,
+        ]);
     }
 
     private function logout(): void
     {
-        if (!$this->assertMutatingPostWithCsrf()) {
+        if (!$this->assertPostCsrf()) {
             return;
         }
         session_destroy();

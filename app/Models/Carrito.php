@@ -83,13 +83,6 @@ final class Carrito
         ];
     }
 
-    public function contarItemsPorUsuario(int $usuarioId): int
-    {
-        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM carrito_items WHERE usuario_id = ?');
-        $stmt->execute([$usuarioId]);
-        return (int) $stmt->fetchColumn();
-    }
-
     /**
      * @return list<array<string, mixed>>
      */

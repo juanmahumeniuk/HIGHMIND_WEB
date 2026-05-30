@@ -49,7 +49,7 @@ if [ "$respuesta" == "y" ]; then
     mysql -u root -pasus -h localhost -e "DROP DATABASE IF EXISTS highmind; CREATE DATABASE highmind;"
     mysql -u root -pasus -h localhost highmind < database/migrations/000_schema.sql
     mysql -u root -pasus -h localhost highmind < database/migrations/001_contacto_mensajes.sql
-    mysql -u root -pasus -h localhost highmind < database/migrations/002_usuario_es_admin.sql
+    mysql -u root -pasus -h localhost highmind < database/migrations/004_drop_password.sql 2>/dev/null || true
     echo ""
     echo "--------------------------------"
     echo "Base de datos creada correctamente"
@@ -64,7 +64,8 @@ if [ "$respuesta" == "y" ]; then
         echo "Creando usuario admin..."
         echo "--------------------------------"
         mysql -u root -pasus -h localhost highmind < database/migrations/003_usuario_admin.sql
-        echo "Usuario admin creado correctamente, las credenciales son: admin@admin.com y admin"
+        echo "Usuario admin creado en MySQL (admin@admin.com, es_admin=1)."
+        echo "Creá la misma cuenta en Firebase Console (Authentication > Email/Password) para poder iniciar sesión."
     else
         echo "No se creo el usuario admin"
     fi

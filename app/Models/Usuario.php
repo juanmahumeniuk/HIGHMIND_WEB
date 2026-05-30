@@ -29,31 +29,23 @@ final class Usuario
         return (bool) $stmt->fetch();
     }
 
-    public function crear(string $email, string $nombre, string $passwordHash): void
-    {
-        $stmt = Database::pdo()->prepare(
-            'INSERT INTO usuarios (email, nombre, password) VALUES (?, ?, ?)'
-        );
-        $stmt->execute([$email, $nombre, $passwordHash]);
-    }
-
-    public function adminCrear(string $email, string $nombre, string $passwordHash, int $esAdmin): int
+    public function adminCrear(string $firebaseUid, string $email, string $nombre, int $esAdmin): int
     {
         $pdo = Database::pdo();
         $stmt = $pdo->prepare(
-            'INSERT INTO usuarios (email, nombre, password, es_admin) VALUES (?, ?, ?, ?)'
+            'INSERT INTO usuarios (firebase_uid, email, nombre, es_admin) VALUES (?, ?, ?, ?)'
         );
-        $stmt->execute([$email, $nombre, $passwordHash, $esAdmin]);
+        $stmt->execute([$firebaseUid, $email, $nombre, $esAdmin]);
         return (int) $pdo->lastInsertId();
     }
 
     /**
-     * @return array{id: int, nombre: string, email: string, password: string|null, es_admin: int}|null
+     * @return array{id: int, nombre: string, email: string, es_admin: int}|null
      */
     public function buscarPorEmail(string $email): ?array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT id, nombre, email, password, COALESCE(es_admin, 0) AS es_admin FROM usuarios WHERE email = ?'
+            'SELECT id, nombre, email, COALESCE(es_admin, 0) AS es_admin FROM usuarios WHERE email = ?'
         );
         $stmt->execute([$email]);
         $row = $stmt->fetch();
@@ -65,6 +57,17 @@ final class Usuario
     {
         $stmt = Database::pdo()->prepare('SELECT id, nombre, email FROM usuarios WHERE firebase_uid = ?');
         $stmt->execute([$uid]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    /** @return array{id: int, nombre: string, email: string, es_admin: int}|null */
+    public function buscarPorId(int $id): ?array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, nombre, email, COALESCE(es_admin, 0) AS es_admin FROM usuarios WHERE id = ?'
+        );
+        $stmt->execute([$id]);
         $row = $stmt->fetch();
         return $row ?: null;
     }
@@ -114,12 +117,6 @@ final class Usuario
             'UPDATE usuarios SET email = ?, nombre = ?, es_admin = ? WHERE id = ?'
         );
         return $stmt->execute([$email, $nombre, $esAdmin, $id]);
-    }
-
-    public function adminActualizarPassword(int $id, string $passwordHash): void
-    {
-        $stmt = Database::pdo()->prepare('UPDATE usuarios SET password = ? WHERE id = ?');
-        $stmt->execute([$passwordHash, $id]);
     }
 
     /**

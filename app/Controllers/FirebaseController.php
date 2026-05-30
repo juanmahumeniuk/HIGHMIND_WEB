@@ -88,7 +88,7 @@ final class FirebaseController
         } catch (PDOException) {
             JsonResponse::send([
                 'ok'  => false,
-                'msg' => 'Error de base de datos al registrar el usuario. Ejecutá en MySQL la migración database/migrations/002_add_firebase_uid.sql (columna firebase_uid en usuarios).',
+                'msg' => 'Error de base de datos al registrar el usuario. Verificá que la tabla usuarios tenga la columna firebase_uid.',
             ], 500);
             return;
         }

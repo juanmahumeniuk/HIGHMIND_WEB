@@ -3,14 +3,16 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Core\Csrf;
 use App\Core\Input;
 use App\Core\JsonResponse;
+use App\Core\PostCsrfGuard;
 use App\Core\Session;
 use App\Models\Carrito;
 
 final class CarritoController
 {
+    use PostCsrfGuard;
+
     public function handle(): void
     {
         Session::start();
@@ -32,7 +34,7 @@ final class CarritoController
             return;
         }
 
-        if (!$this->assertMutatingPostWithCsrf()) {
+        if (!$this->assertPostCsrf()) {
             return;
         }
 
@@ -43,20 +45,6 @@ final class CarritoController
             'clear' => $this->clear($model, $usuarioId),
             default => JsonResponse::send(['ok' => false, 'msg' => 'Acción no válida']),
         };
-    }
-
-    private function assertMutatingPostWithCsrf(): bool
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
-            return false;
-        }
-        $token = Input::postCsrfToken();
-        if ($token === '' || !Csrf::validate($token)) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Token de seguridad inválido'], 403);
-            return false;
-        }
-        return true;
     }
 
     private function add(Carrito $model, int $usuarioId): void

@@ -4,9 +4,10 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\AdminAuth;
-use App\Core\Csrf;
+use App\Core\FirebaseClient;
 use App\Core\Input;
 use App\Core\JsonResponse;
+use App\Core\PostCsrfGuard;
 use App\Models\Carrito;
 use App\Models\ContactoMensaje;
 use App\Models\Producto;
@@ -15,6 +16,8 @@ use PDOException;
 
 final class AdminController
 {
+    use PostCsrfGuard;
+
     public function handle(string $tail): void
     {
         $tail = trim($tail, '/');
@@ -38,28 +41,6 @@ final class AdminController
             'contacto_mensajes' => $this->contactoMensajes($id),
             default => JsonResponse::send(['ok' => false, 'msg' => 'Recurso admin desconocido'], 404),
         };
-    }
-
-    private function assertPostCsrf(): bool
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
-            return false;
-        }
-        $token = Input::postCsrfToken();
-        if ($token === '' || !Csrf::validate($token)) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Token de seguridad inválido'], 403);
-            return false;
-        }
-        return true;
-    }
-
-    private static function hashPassword(string $plain): string
-    {
-        if (in_array('argon2id', password_algos(), true)) {
-            return password_hash($plain, PASSWORD_ARGON2ID);
-        }
-        return password_hash($plain, PASSWORD_BCRYPT);
     }
 
     private function productos(?int $id): void
@@ -278,7 +259,16 @@ final class AdminController
                 JsonResponse::send(['ok' => false, 'msg' => 'Email ya registrado'], 400);
                 return;
             }
-            $newId = $model->adminCrear($email, $nombre, self::hashPassword($password), $esAdmin);
+            $firebase = new FirebaseClient();
+            $fbUser = $firebase->signUp($email, $password);
+            if ($fbUser === null) {
+                JsonResponse::send([
+                    'ok' => false,
+                    'msg' => 'No se pudo crear el usuario en Firebase. Verificá FIREBASE_API_KEY y que Email/Password esté habilitado.',
+                ], 502);
+                return;
+            }
+            $newId = $model->adminCrear($fbUser['uid'], $email, $nombre, $esAdmin);
             JsonResponse::send(['ok' => true, 'id' => $newId]);
             return;
         }
@@ -296,20 +286,6 @@ final class AdminController
                     return;
                 }
                 JsonResponse::send(['ok' => true, 'msg' => 'Usuario eliminado']);
-                return;
-            }
-            if ($action === 'update_password') {
-                $password = Input::postPassword('password');
-                if (strlen($password) < 6) {
-                    JsonResponse::send(['ok' => false, 'msg' => 'Contraseña demasiado corta'], 400);
-                    return;
-                }
-                if (!$model->adminObtener($id)) {
-                    JsonResponse::send(['ok' => false, 'msg' => 'Usuario no encontrado'], 404);
-                    return;
-                }
-                $model->adminActualizarPassword($id, self::hashPassword($password));
-                JsonResponse::send(['ok' => true, 'msg' => 'Contraseña actualizada']);
                 return;
             }
             if ($action !== 'update') {

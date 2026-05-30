@@ -4,78 +4,142 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin | HIGHMIND</title>
+  <link rel="stylesheet" href="../frontend/css/estilo.css">
   <link rel="stylesheet" href="admin.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="icon" href="../frontend/img/logo.jpeg">
 </head>
 <body>
-  <header class="admin-header">
-    <div class="admin-header-brand">
-      <strong>HIGHMIND</strong><span class="sub">Panel administrativo</span>
-    </div>
-    <div class="admin-header-actions">
-      <nav class="admin-site-nav" aria-label="Sitio público">
-        <a href="../frontend/index.html" class="btn btn-small">Inicio</a>
-        <a href="../frontend/tienda.html" class="btn btn-small">Tienda</a>
-        <a href="../frontend/contacto.html" class="btn btn-small">Contacto</a>
-      </nav>
-      <span id="user-pill" class="muted"></span>
-      <button type="button" class="btn btn-small" id="btn-logout" style="display:none">Cerrar sesión</button>
-    </div>
+  <header>
+    <nav class="navbar">
+      <a href="../frontend/index.html" class="logo">
+        <img src="../frontend/img/logo.jpeg" alt="HIGHMIND" />
+        <span>HIGHMIND</span>
+      </a>
+      <button type="button" class="menu-toggle" id="menu-toggle" aria-controls="nav-links" aria-expanded="false" aria-label="Abrir menú"></button>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="../frontend/index.html">Inicio</a></li>
+        <li><a href="../frontend/tienda.html">Tienda</a></li>
+        <li><a href="../frontend/contacto.html">Contacto</a></li>
+        <li id="nav-admin-item"><a href="index.html" class="is-active">Panel admin</a></li>
+        <li><a href="../frontend/login.html" id="sesion-btn">Iniciar sesión</a></li>
+        <li>
+          <a href="#" id="carrito-btn" class="carrito-nav-link" aria-label="Carrito">
+            <span class="carrito-nav-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            </span>
+            <span id="carrito-badge"></span>
+          </a>
+        </li>
+      </ul>
+    </nav>
   </header>
-  <div id="msg" style="padding:0.35rem 1.25rem;min-height:1.25rem;font-size:0.88rem"></div>
 
-  <div id="gate">
-    <h2>Acceso</h2>
-    <p class="muted">Iniciá sesión con una cuenta que tenga permisos de administrador.</p>
-    <form id="gate-form">
-      <label for="gate-email">Email</label>
-      <input id="gate-email" type="email" autocomplete="username" required>
-      <label for="gate-password">Contraseña</label>
-      <input id="gate-password" type="password" autocomplete="current-password" required>
-      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:0.5rem">Entrar</button>
-    </form>
-    <p class="muted" style="margin-top:1rem">
-      <a href="../frontend/tienda.html">Volver a la tienda</a>
-      ·
-      <a href="../frontend/login.html">Login en el sitio</a>
-    </p>
-  </div>
+  <div id="msg" class="admin-msg" role="status" aria-live="polite"></div>
 
-  <div id="denied" style="display:none">
-    <h2>Sin permisos</h2>
-    <p class="muted">Tu sesión está activa pero esta cuenta no es administradora. Pedí que ejecuten en la base:</p>
-    <pre style="background:#0d0d0d;padding:0.75rem;border-radius:0.5rem;border:1px solid #222;font-size:0.8rem;overflow:auto">UPDATE usuarios SET es_admin = 1 WHERE email = 'tu@email.com';</pre>
-    <p><a href="../frontend/tienda.html">Ir a la tienda</a></p>
-  </div>
+  <main class="admin-page">
+    <div id="gate" class="admin-gate">
+      <div class="login-box admin-gate-box">
+        <span class="kicker login-kicker">Administración</span>
+        <h2>Acceso al panel</h2>
+        <p class="login-subtitle">Iniciá sesión con email y contraseña (Firebase). La cuenta debe tener permisos de administrador en la base de datos.</p>
+        <form id="gate-form">
+          <label for="gate-email">Email</label>
+          <input id="gate-email" type="email" autocomplete="username" required>
+          <label for="gate-password">Contraseña</label>
+          <input id="gate-password" type="password" autocomplete="current-password" required>
+          <button type="submit" class="btn btn-primary btn-auth0">Entrar</button>
+        </form>
+        <p class="login-subtitle admin-gate-links">
+          <a href="../frontend/tienda.html">Volver a la tienda</a>
+          ·
+          <a href="../frontend/login.html">Login en el sitio</a>
+        </p>
+      </div>
+    </div>
 
-  <div id="app-panel">
-    <aside class="admin-sidebar">
-      <button type="button" data-section="productos">Productos</button>
-      <button type="button" data-section="usuarios">Usuarios</button>
-      <button type="button" data-section="carrito">Carrito</button>
-      <button type="button" data-section="contacto">Contacto</button>
-    </aside>
-    <main class="admin-main" id="content"></main>
-  </div>
+    <div id="denied" class="admin-gate" style="display:none">
+      <div class="login-box admin-gate-box">
+        <span class="kicker login-kicker">Sin permisos</span>
+        <h2>Acceso denegado</h2>
+        <p class="login-subtitle">Tu sesión está activa pero esta cuenta no es administradora. Pedí que ejecuten en la base:</p>
+        <pre class="admin-sql-hint">UPDATE usuarios SET es_admin = 1 WHERE email = 'tu@email.com';</pre>
+        <p class="login-subtitle"><a href="../frontend/tienda.html">Ir a la tienda</a></p>
+      </div>
+    </div>
+
+    <div id="app-panel">
+      <aside class="admin-sidebar" aria-label="Secciones del panel">
+        <p class="admin-sidebar-label">Panel</p>
+        <button type="button" data-section="productos">Productos</button>
+        <button type="button" data-section="usuarios">Usuarios</button>
+        <button type="button" data-section="carrito">Carrito</button>
+        <button type="button" data-section="contacto">Contacto</button>
+      </aside>
+      <div class="admin-main" id="content"></div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <p>&copy; 2025 HIGHMIND. Panel administrativo.</p>
+    </div>
+  </footer>
 
   <div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true">
-    <div class="modal" id="modal-dialog">
+    <div class="admin-modal" id="modal-dialog">
       <h3 id="modal-title"></h3>
       <div id="modal-body"></div>
       <div id="modal-actions" class="modal-actions"></div>
     </div>
   </div>
 
+  <div id="modal-carrito" class="modal" style="display:none;">
+    <div class="modal-content-carrito">
+      <span class="close-modal" id="cerrar-modal-carrito">&times;</span>
+      <h2>Carrito de compras</h2>
+      <div id="carrito-items"></div>
+      <div class="carrito-footer">
+        <div>
+          <span class="carrito-label">Subtotal:</span>
+          <span id="carrito-subtotal" class="carrito-subtotal"></span>
+        </div>
+        <p id="checkout-disabled-hint" class="checkout-disabled-hint" style="display:none;" role="status" aria-live="polite"></p>
+        <button class="btn btn-primary" id="finalizar-compra">Finalizar compra</button>
+        <button class="btn btn-secondary" id="vaciar-carrito">Vaciar carrito</button>
+      </div>
+      <div id="checkout-panel" class="checkout-panel" style="display:none;">
+        <h3>Pago con tarjeta</h3>
+        <p id="checkout-payment-notice" class="checkout-payment-notice" style="display:none;" role="status" aria-live="polite"></p>
+        <div id="checkout-feedback" class="checkout-feedback"></div>
+        <div id="paymentBrick_container"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://sdk.mercadopago.com/js/v2"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="../frontend/js/config.js"></script>
+  <script src="../frontend/js/auth.js"></script>
+  <script src="../frontend/js/carrito.js"></script>
+  <script src="../frontend/js/navbar.js"></script>
+  <script src="../frontend/js/anim.js" defer></script>
   <script src="admin.js"></script>
   <script>
-    (function () {
-      var panel = document.getElementById('app-panel');
-      var obs = new MutationObserver(function () {
-        var vis = panel.classList.contains('visible');
-        document.getElementById('btn-logout').style.display = vis ? 'inline-flex' : 'none';
-      });
-      obs.observe(panel, { attributes: true, attributeFilter: ['class'] });
-    })();
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof wireSesionNavbar === 'function') wireSesionNavbar();
+      if (typeof actualizarBadgeCarrito === 'function') actualizarBadgeCarrito();
+      var sesionBtn = document.getElementById('sesion-btn');
+      if (sesionBtn && sesionBtn.getAttribute('href') === 'login.html') {
+        sesionBtn.href = '../frontend/login.html';
+        sesionBtn.onclick = function () {
+          sessionStorage.setItem('postLoginRedirect', window.location.href);
+        };
+      }
+    });
   </script>
 </body>
 </html>

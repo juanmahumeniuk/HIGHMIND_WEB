@@ -1,17 +1,10 @@
 // ─── Firebase config (completar con los valores del proyecto Firebase) ─────────
-// Estos valores son PÚBLICOS (van en el frontend). La seguridad la maneja Firebase
-// mediante Authorized Domains y reglas de seguridad, no ocultando estas claves.
 window.FIREBASE_CONFIG = {
   apiKey: 'AIzaSyBcbnwrRnNY-bU7wP0UvC44IUBqRxi-oXM',
   authDomain: 'highmind-aff15.firebaseapp.com',
   projectId: 'highmind-aff15',
 };
-// ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Resuelve la URL de la API respecto de la página actual (siempre bajo /frontend/…).
- * Así funciona en subcarpetas, php -S y distintos hosts sin depender de "/" absoluto.
- */
 window.apiUrl = function apiUrl(path) {
   const clean = String(path).replace(/^\//, '');
   return new URL('../api/' + clean, window.location.href).href;
@@ -38,4 +31,24 @@ window.getCsrfToken = function getCsrfToken() {
 
 window.resetCsrfTokenCache = function resetCsrfTokenCache() {
   _csrfTokenCache = null;
+};
+
+window.safeImgSrc = function safeImgSrc(src) {
+  const s = String(src || '').trim();
+  if (/^javascript:/i.test(s) || /^data:/i.test(s)) {
+    return '';
+  }
+  return s;
+};
+
+window.actualizarBadgeCarrito = function actualizarBadgeCarrito() {
+  return fetch(apiUrl('carrito?action=get'), { credentials: 'include' })
+    .then(function (r) {
+      return r.ok ? r.json() : Promise.resolve({ total_items: 0 });
+    })
+    .then(function (resp) {
+      const total = resp.total_items || 0;
+      const badge = document.getElementById('carrito-badge');
+      if (badge) badge.textContent = total > 0 ? String(total) : '';
+    });
 };

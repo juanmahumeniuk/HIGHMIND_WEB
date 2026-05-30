@@ -2,16 +2,8 @@
 let mpBrickController = null;
 let mpBricksBuilder = null;
 let mpPublicKey = '';
+let checkoutConfigCache = null;
 
-function safeImgSrc(src) {
-  const s = String(src || '').trim();
-  if (/^javascript:/i.test(s) || /^data:/i.test(s)) {
-    return '';
-  }
-  return s;
-}
-
-// ABRIR Y CERRAR MODAL
 function mostrarModalCarrito() {
   document.getElementById('modal-carrito').style.display = 'flex';
   cargarCarrito();
@@ -172,44 +164,84 @@ function syncCheckoutDisabledHint() {
   }
 }
 
-function applyCheckoutButtonState() {
-  const btn = document.getElementById('finalizar-compra');
+function applyCheckoutButtonStateFromConfig(d, btn) {
   if (!btn) return;
-  fetch(apiUrl('pagos?action=config'), { credentials: 'include' })
+  if (!d) {
+    btn.disabled = true;
+    btn.setAttribute('aria-disabled', 'true');
+    btn.setAttribute('data-checkout-lock', 'login_required');
+    btn.title = 'Iniciá sesión para finalizar la compra.';
+    btn.classList.add('btn-checkout-locked');
+    return;
+  }
+  if (d.payments_enabled === false) {
+    btn.disabled = true;
+    btn.setAttribute('aria-disabled', 'true');
+    btn.setAttribute('data-checkout-lock', 'payments_disabled');
+    btn.title = d.msg || 'Pagos deshabilitados en este sitio.';
+    btn.classList.add('btn-checkout-locked');
+    return;
+  }
+  if (!d.public_key) {
+    btn.disabled = true;
+    btn.setAttribute('aria-disabled', 'true');
+    btn.setAttribute('data-checkout-lock', 'not_configured');
+    btn.title = d.msg || 'Pagos no configurados.';
+    btn.classList.add('btn-checkout-locked');
+    return;
+  }
+  btn.disabled = false;
+  btn.removeAttribute('aria-disabled');
+  btn.removeAttribute('data-checkout-lock');
+  btn.title = '';
+  btn.classList.remove('btn-checkout-locked');
+}
+
+function loadCheckoutConfigRaw(forceRefresh) {
+  if (!forceRefresh && checkoutConfigCache) {
+    return checkoutConfigCache;
+  }
+  checkoutConfigCache = fetch(apiUrl('pagos?action=config'), { credentials: 'include' })
     .then(function (r) {
       if (r.status === 401) {
-        btn.disabled = true;
-        btn.setAttribute('aria-disabled', 'true');
-        btn.setAttribute('data-checkout-lock', 'login_required');
-        btn.title = 'Iniciá sesión para finalizar la compra.';
-        btn.classList.add('btn-checkout-locked');
-        return null;
+        return { _unauthorized: true };
       }
       return r.json();
     })
     .then(function (d) {
-      if (!d) return;
-      if (d.payments_enabled === false) {
-        btn.disabled = true;
-        btn.setAttribute('aria-disabled', 'true');
-        btn.setAttribute('data-checkout-lock', 'payments_disabled');
-        btn.title = d.msg || 'Pagos deshabilitados en este sitio.';
-        btn.classList.add('btn-checkout-locked');
+      if (d && !d._unauthorized && d.public_key) {
+        mpPublicKey = d.public_key;
+      }
+      return d;
+    });
+  return checkoutConfigCache;
+}
+
+function fetchCheckoutConfig(forceRefresh) {
+  return loadCheckoutConfigRaw(forceRefresh).then(function (d) {
+    if (d && d._unauthorized) {
+      throw new Error('Iniciá sesión para pagar.');
+    }
+    if (d.payments_enabled === false) {
+      throw new Error(d.msg || 'Los pagos están deshabilitados.');
+    }
+    if (!d.ok || !d.public_key) {
+      throw new Error(d.msg || 'No se pudo inicializar Mercado Pago');
+    }
+    return d;
+  });
+}
+
+function applyCheckoutButtonState() {
+  const btn = document.getElementById('finalizar-compra');
+  if (!btn) return;
+  loadCheckoutConfigRaw()
+    .then(function (d) {
+      if (d && d._unauthorized) {
+        applyCheckoutButtonStateFromConfig(null, btn);
         return;
       }
-      if (!d.public_key) {
-        btn.disabled = true;
-        btn.setAttribute('aria-disabled', 'true');
-        btn.setAttribute('data-checkout-lock', 'not_configured');
-        btn.title = d.msg || 'Pagos no configurados.';
-        btn.classList.add('btn-checkout-locked');
-        return;
-      }
-      btn.disabled = false;
-      btn.removeAttribute('aria-disabled');
-      btn.removeAttribute('data-checkout-lock');
-      btn.title = '';
-      btn.classList.remove('btn-checkout-locked');
+      applyCheckoutButtonStateFromConfig(d, btn);
     })
     .catch(function () {})
     .finally(function () {
@@ -229,26 +261,6 @@ function setCheckoutPaymentNotice(config) {
     el.style.display = 'none';
     el.textContent = '';
   }
-}
-
-function fetchCheckoutConfig() {
-  return fetch(apiUrl('pagos?action=config'), { credentials: 'include' })
-    .then(function (r) {
-      if (r.status === 401) {
-        throw new Error('Iniciá sesión para pagar.');
-      }
-      return r.json();
-    })
-    .then(function (d) {
-      if (d.payments_enabled === false) {
-        throw new Error(d.msg || 'Los pagos están deshabilitados.');
-      }
-      if (!d.ok || !d.public_key) {
-        throw new Error(d.msg || 'No se pudo inicializar Mercado Pago');
-      }
-      mpPublicKey = d.public_key;
-      return d;
-    });
 }
 
 function destroyBrickIfAny() {
@@ -404,18 +416,6 @@ function setupFinalizarCompra() {
         });
     };
   }
-}
-
-function actualizarBadgeCarrito() {
-  fetch(apiUrl('carrito?action=get'), { credentials: 'include' })
-    .then(function (r) {
-      return r.ok ? r.json() : Promise.resolve({ total_items: 0 });
-    })
-    .then(function (resp) {
-      const total = resp.total_items || 0;
-      const badge = document.getElementById('carrito-badge');
-      if (badge) badge.textContent = total > 0 ? String(total) : '';
-    });
 }
 
 function setupAbrirCarrito() {
