@@ -3,75 +3,68 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Core\Database;
+use App\Models\Contracts\AdminListable;
 
-final class Carrito
+final class Carrito extends BaseModel implements AdminListable
 {
     public function agregarOIncrementar(int $usuarioId, int $productoId, int $cantidad): void
     {
-        $pdo = Database::pdo();
-        $stmt = $pdo->prepare(
-            'SELECT cantidad FROM carrito_items WHERE usuario_id = ? AND producto_id = ?'
-        );
-        $stmt->execute([$usuarioId, $productoId]);
-        if ($stmt->fetch()) {
-            $u = $pdo->prepare(
-                'UPDATE carrito_items SET cantidad = cantidad + ? WHERE usuario_id = ? AND producto_id = ?'
+        if ($this->fetchOne(
+            'SELECT cantidad FROM carrito_items WHERE usuario_id = ? AND producto_id = ?',
+            [$usuarioId, $productoId]
+        )) {
+            $this->execute(
+                'UPDATE carrito_items SET cantidad = cantidad + ? WHERE usuario_id = ? AND producto_id = ?',
+                [$cantidad, $usuarioId, $productoId]
             );
-            $u->execute([$cantidad, $usuarioId, $productoId]);
         } else {
-            $i = $pdo->prepare(
-                'INSERT INTO carrito_items (usuario_id, producto_id, cantidad) VALUES (?, ?, ?)'
+            $this->execute(
+                'INSERT INTO carrito_items (usuario_id, producto_id, cantidad) VALUES (?, ?, ?)',
+                [$usuarioId, $productoId, $cantidad]
             );
-            $i->execute([$usuarioId, $productoId, $cantidad]);
         }
     }
 
     public function quitar(int $usuarioId, int $productoId): void
     {
-        $stmt = Database::pdo()->prepare(
-            'DELETE FROM carrito_items WHERE usuario_id = ? AND producto_id = ?'
+        $this->execute(
+            'DELETE FROM carrito_items WHERE usuario_id = ? AND producto_id = ?',
+            [$usuarioId, $productoId]
         );
-        $stmt->execute([$usuarioId, $productoId]);
     }
 
     public function actualizarCantidad(int $usuarioId, int $productoId, int $cantidad): void
     {
-        $stmt = Database::pdo()->prepare(
-            'UPDATE carrito_items SET cantidad = ? WHERE usuario_id = ? AND producto_id = ?'
+        $this->execute(
+            'UPDATE carrito_items SET cantidad = ? WHERE usuario_id = ? AND producto_id = ?',
+            [$cantidad, $usuarioId, $productoId]
         );
-        $stmt->execute([$cantidad, $usuarioId, $productoId]);
     }
 
     public function vaciar(int $usuarioId): void
     {
-        $stmt = Database::pdo()->prepare('DELETE FROM carrito_items WHERE usuario_id = ?');
-        $stmt->execute([$usuarioId]);
+        $this->execute('DELETE FROM carrito_items WHERE usuario_id = ?', [$usuarioId]);
     }
 
     public function obtenerCantidadItem(int $usuarioId, int $productoId): int
     {
-        $stmt = Database::pdo()->prepare(
-            'SELECT cantidad FROM carrito_items WHERE usuario_id = ? AND producto_id = ?'
+        $row = $this->fetchOne(
+            'SELECT cantidad FROM carrito_items WHERE usuario_id = ? AND producto_id = ?',
+            [$usuarioId, $productoId]
         );
-        $stmt->execute([$usuarioId, $productoId]);
-        $row = $stmt->fetch();
         return $row ? (int) $row['cantidad'] : 0;
     }
 
-    /**
-     * @return array{carrito: list<array<string, mixed>>, subtotal: float|int, total_items: int}
-     */
+    /** @return array{carrito: list<array<string, mixed>>, subtotal: float|int, total_items: int} */
     public function obtenerConProductos(int $usuarioId): array
     {
-        $stmt = Database::pdo()->prepare(
+        $carrito = $this->fetchAll(
             'SELECT ci.producto_id, ci.cantidad, p.nombre, p.precio, p.img
              FROM carrito_items ci
              JOIN productos p ON p.id = ci.producto_id
-             WHERE ci.usuario_id = ?'
+             WHERE ci.usuario_id = ?',
+            [$usuarioId]
         );
-        $stmt->execute([$usuarioId]);
-        $carrito = $stmt->fetchAll();
         $subtotal = 0;
         foreach ($carrito as $item) {
             $subtotal += $item['precio'] * $item['cantidad'];
@@ -83,19 +76,9 @@ final class Carrito
         ];
     }
 
-    public function contarItemsPorUsuario(int $usuarioId): int
+    public function adminListar(): array
     {
-        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM carrito_items WHERE usuario_id = ?');
-        $stmt->execute([$usuarioId]);
-        return (int) $stmt->fetchColumn();
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    public function adminListarTodos(): array
-    {
-        $stmt = Database::pdo()->query(
+        return $this->queryAll(
             'SELECT ci.id, ci.usuario_id, ci.producto_id, ci.cantidad, ci.agregado,
                     u.email AS usuario_email, u.nombre AS usuario_nombre,
                     p.nombre AS producto_nombre, p.precio AS producto_precio, p.img AS producto_img
@@ -104,7 +87,6 @@ final class Carrito
              INNER JOIN productos p ON p.id = ci.producto_id
              ORDER BY ci.agregado DESC, ci.id DESC'
         );
-        return $stmt->fetchAll() ?: [];
     }
 
     public function adminActualizarCantidadPorItemId(int $itemId, int $cantidad): bool
@@ -112,20 +94,19 @@ final class Carrito
         if ($cantidad < 1) {
             return false;
         }
-        $stmt = Database::pdo()->prepare('UPDATE carrito_items SET cantidad = ? WHERE id = ?');
+        $stmt = $this->pdo->prepare('UPDATE carrito_items SET cantidad = ? WHERE id = ?');
         return $stmt->execute([$cantidad, $itemId]) && $stmt->rowCount() > 0;
     }
 
     public function adminEliminarLinea(int $itemId): bool
     {
-        $stmt = Database::pdo()->prepare('DELETE FROM carrito_items WHERE id = ?');
+        $stmt = $this->pdo->prepare('DELETE FROM carrito_items WHERE id = ?');
         $stmt->execute([$itemId]);
         return $stmt->rowCount() > 0;
     }
 
     public function adminVaciarUsuario(int $usuarioId): void
     {
-        $stmt = Database::pdo()->prepare('DELETE FROM carrito_items WHERE usuario_id = ?');
-        $stmt->execute([$usuarioId]);
+        $this->execute('DELETE FROM carrito_items WHERE usuario_id = ?', [$usuarioId]);
     }
 }

@@ -3,23 +3,21 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Core\Csrf;
+use App\Core\Controller\AuthenticatedController;
 use App\Core\Input;
-use App\Core\JsonResponse;
-use App\Core\Session;
 use App\Models\Carrito;
+use App\Models\Producto;
 
-final class CarritoController
+final class CarritoController extends AuthenticatedController
 {
     public function handle(): void
     {
-        Session::start();
-        if (!isset($_SESSION['usuario_id'])) {
-            JsonResponse::send(['ok' => false, 'msg' => 'No autorizado'], 401);
+        $usuarioId = $this->requireAuth();
+        if ($usuarioId === null) {
             return;
         }
-        $usuarioId = (int) $_SESSION['usuario_id'];
-        $action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+        $action = $this->action();
         $model = new Carrito();
 
         if ($action === 'get') {
@@ -28,11 +26,11 @@ final class CarritoController
         }
 
         if (!in_array($action, ['add', 'remove', 'update', 'clear'], true)) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Acción no válida']);
+            $this->jsonError('Acción no válida');
             return;
         }
 
-        if (!$this->assertMutatingPostWithCsrf()) {
+        if (!$this->requirePostCsrf()) {
             return;
         }
 
@@ -41,87 +39,63 @@ final class CarritoController
             'remove' => $this->remove($model, $usuarioId),
             'update' => $this->update($model, $usuarioId),
             'clear' => $this->clear($model, $usuarioId),
-            default => JsonResponse::send(['ok' => false, 'msg' => 'Acción no válida']),
+            default => $this->jsonError('Acción no válida'),
         };
-    }
-
-    private function assertMutatingPostWithCsrf(): bool
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
-            return false;
-        }
-        $token = Input::postCsrfToken();
-        if ($token === '' || !Csrf::validate($token)) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Token de seguridad inválido'], 403);
-            return false;
-        }
-        return true;
     }
 
     private function add(Carrito $model, int $usuarioId): void
     {
         $productoId = Input::postPositiveInt('id', 0);
         if ($productoId < 1) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Producto inválido'], 400);
+            $this->jsonError('Producto inválido', 400);
             return;
         }
-        $cantidad = Input::postPositiveInt('qty', 1);
-        if ($cantidad < 1) {
-            $cantidad = 1;
-        }
+        $cantidad = max(1, Input::postPositiveInt('qty', 1));
 
-        $productoModel = new \App\Models\Producto();
+        $productoModel = new Producto();
         $stockDisponible = $productoModel->obtenerStock($productoId);
         $cantidadActual = $model->obtenerCantidadItem($usuarioId, $productoId);
 
         if (($cantidadActual + $cantidad) > $stockDisponible) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Stock insuficiente'], 400);
+            $this->jsonError('Stock insuficiente', 400);
             return;
         }
 
         $model->agregarOIncrementar($usuarioId, $productoId, $cantidad);
-        JsonResponse::send(['ok' => true]);
+        $this->jsonOk();
     }
 
     private function remove(Carrito $model, int $usuarioId): void
     {
-        $productoId = Input::postPositiveInt('id', 0);
-        $model->quitar($usuarioId, $productoId);
-        JsonResponse::send(['ok' => true]);
+        $model->quitar($usuarioId, Input::postPositiveInt('id', 0));
+        $this->jsonOk();
     }
 
     private function update(Carrito $model, int $usuarioId): void
     {
         $productoId = Input::postPositiveInt('id', 0);
-        $cantidad = Input::postPositiveInt('qty', 1);
-        if ($cantidad < 1) {
-            $cantidad = 1;
-        }
+        $cantidad = max(1, Input::postPositiveInt('qty', 1));
 
-        $productoModel = new \App\Models\Producto();
-        $stockDisponible = $productoModel->obtenerStock($productoId);
-
+        $stockDisponible = (new Producto())->obtenerStock($productoId);
         if ($cantidad > $stockDisponible) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Stock insuficiente'], 400);
+            $this->jsonError('Stock insuficiente', 400);
             return;
         }
 
         $model->actualizarCantidad($usuarioId, $productoId, $cantidad);
-        JsonResponse::send(['ok' => true]);
+        $this->jsonOk();
     }
 
     private function clear(Carrito $model, int $usuarioId): void
     {
         $model->vaciar($usuarioId);
-        JsonResponse::send(['ok' => true]);
+        $this->jsonOk();
     }
 
     private function get(Carrito $model, int $usuarioId): void
     {
         $data = $model->obtenerConProductos($usuarioId);
-        JsonResponse::send([
-            'ok' => true,
+        $this->jsonOk([
             'carrito' => $data['carrito'],
             'subtotal' => $data['subtotal'],
             'total_items' => $data['total_items'],

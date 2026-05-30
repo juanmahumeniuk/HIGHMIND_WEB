@@ -3,13 +3,13 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Controller\AbstractController;
 use App\Models\Producto;
 
-final class ProductoController
+final class ProductoController extends AbstractController
 {
     public function index(): void
     {
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode((new Producto())->getActivos(), JSON_UNESCAPED_UNICODE);
+        $this->jsonRaw((new Producto())->getActivos());
     }
 }
