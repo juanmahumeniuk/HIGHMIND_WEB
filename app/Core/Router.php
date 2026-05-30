@@ -3,25 +3,20 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-use App\Controllers\CarritoController;
-use App\Controllers\ContactoController;
-use App\Controllers\FirebaseController;
-use App\Controllers\PagoController;
-use App\Controllers\ProductoController;
-use App\Controllers\UsuarioController;
+use App\Core\Controller\AbstractController;
 
-final class Router
+final class Router extends AbstractController
 {
     public function dispatch(string $resource): void
     {
         match ($resource) {
-            'productos' => (new ProductoController())->index(),
-            'usuarios'  => (new UsuarioController())->handle(),
-            'carrito'   => (new CarritoController())->handle(),
-            'contacto'  => (new ContactoController())->handle(),
-            'pagos'     => (new PagoController())->handle(),
-            'firebase'  => (new FirebaseController())->handle(),
-            default     => JsonResponse::send(['error' => 'Recurso no encontrado'], 404),
+            'productos' => (new \App\Controllers\ProductoController())->index(),
+            'usuarios'  => (new \App\Controllers\UsuarioController())->handle(),
+            'carrito'   => (new \App\Controllers\CarritoController())->handle(),
+            'contacto'  => (new \App\Controllers\ContactoController())->handle(),
+            'pagos'     => (new \App\Controllers\PagoController())->handle(),
+            'firebase'  => (new \App\Controllers\FirebaseController())->handle(),
+            default     => $this->jsonError('Recurso no encontrado', 404),
         };
     }
 }

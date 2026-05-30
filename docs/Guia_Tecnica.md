@@ -10,9 +10,27 @@ Patrón **MVC** en PHP puro. Punto de entrada API: [`public_html/api/index.php`]
 
 - **`Input.php`**: sanitización de entradas POST.
 - **`Csrf.php`**: tokens anti-CSRF en mutaciones.
-- **`PostCsrfGuard.php`**: trait compartido para validar POST + CSRF en controladores.
+- **`Controller/AbstractController.php`**: sesión, validación de método, CSRF en POST, respuestas JSON (`jsonOk`, `jsonError`, `jsonBody`).
+- **`Controller/AuthenticatedController.php`**: extiende lo anterior con `requireAuth()` para endpoints que exigen sesión.
 - **`Database.php`**: PDO singleton.
 - **`FirebaseClient.php`**: verificación de ID tokens y creación de usuarios vía REST Identity Toolkit.
+
+---
+
+## Capa Model
+
+- **`BaseModel.php`**: acceso PDO centralizado (`fetchOne`, `fetchAll`, `execute`, `insert`, `exists`).
+- **`Contracts/AdminListable.php`**, **`Contracts/AdminReadable.php`**: contratos para listado y lectura en panel admin.
+- Modelos concretos: `Producto`, `Usuario`, `Carrito`, `ContactoMensaje`.
+
+---
+
+## Capa Admin
+
+- **`AdminController.php`**: enrutador; exige `AdminAuth::require()` y delega por entidad.
+- **`Controllers/Admin/AbstractAdminHandler.php`**: plantilla REST (GET list/item, POST create/update/delete).
+- Handlers: `ProductoAdminHandler`, `UsuarioAdminHandler`, `CarritoAdminHandler`, `ContactoAdminHandler`.
+- **`Services/ProductImageUploader.php`**: subida y validación de imágenes de producto.
 
 ---
 
@@ -73,10 +91,15 @@ Creación de usuarios: el backend llama `FirebaseClient::signUp` y guarda `fireb
 
 ## Frontend JS
 
+Orden de carga recomendado: `config.js` → `api-client.js` → `dom.js` → `auth.js` → script de página → `navbar.js`.
+
 | Archivo | Rol |
 | --- | --- |
-| `config.js` | Firebase config, `apiUrl`, CSRF, `safeImgSrc`, badge carrito |
-| `auth.js` | Login/logout Firebase, navbar sesión |
+| `config.js` | Firebase config, `apiUrl`, CSRF, `safeImgSrc` |
+| `api-client.js` | `apiGet`, `apiPost`, `apiPostFormData`, `apiPostCart`, `fetchCarrito`, badge carrito |
+| `dom.js` | `el`, `setFeedback`, `formatPrecio`, `frontendAssetUrl` |
+| `auth.js` | Login/logout Firebase, `getSession()`, navbar sesión |
 | `script.js` | Catálogo, contacto |
 | `carrito.js` | Modal carrito, Mercado Pago |
 | `login.js` | Formularios login/registro en `login.html` |
+| `admin/admin.js` | Panel admin CRUD |

@@ -88,7 +88,7 @@ function renderProductos() {
     h3.textContent = String(p.nombre || '');
     const precioEl = document.createElement('div');
     precioEl.className = 'card-precio';
-    precioEl.textContent = '$' + Number(p.precio).toLocaleString('es-AR');
+    precioEl.textContent = formatPrecio(p.precio);
     body.appendChild(h3);
     body.appendChild(precioEl);
 
@@ -100,10 +100,6 @@ function renderProductos() {
   if (typeof window.HMRevealRefresh === 'function') {
     window.HMRevealRefresh();
   }
-}
-
-function formatPrecio(n) {
-  return '$' + Number(n).toLocaleString('es-AR');
 }
 
 function stockBadgeInfo(stock) {
@@ -207,38 +203,21 @@ function setupModalYCarrito() {
 }
 
 function agregarAlCarrito(id, qty) {
-  qty = qty == null ? 1 : qty;
-  getCsrfToken()
-    .then(function (csrf) {
-      return fetch(apiUrl('carrito'), {
-        method: 'POST',
-        body: new URLSearchParams({
-          action: 'add',
-          id: id,
-          qty: qty,
-          csrf_token: csrf
-        }),
-        credentials: 'include'
-      });
-    })
-    .then(function (r) {
-      return r.json();
-    })
-    .then(function (resp) {
-      if (resp.ok) {
-        alert('Producto agregado al carrito');
-        if (typeof actualizarBadgeCarrito === 'function') actualizarBadgeCarrito();
-        const mc = document.getElementById('modal-carrito');
-        if (mc && mc.style.display === 'flex' && typeof cargarCarrito === 'function') {
-          cargarCarrito();
-        }
-      } else {
-        if (confirm((resp.msg || 'Debes iniciar sesión para agregar al carrito') + '\n\n¿Ir a iniciar sesión?')) {
-          sessionStorage.setItem('postLoginRedirect', window.location.href);
-          window.location.href = 'login.html';
-        }
+  apiPostCart('add', { id: id, qty: qty == null ? 1 : qty }).then(function (resp) {
+    if (resp.ok) {
+      alert('Producto agregado al carrito');
+      if (typeof actualizarBadgeCarrito === 'function') actualizarBadgeCarrito();
+      const mc = document.getElementById('modal-carrito');
+      if (mc && mc.style.display === 'flex' && typeof cargarCarrito === 'function') {
+        cargarCarrito();
       }
-    });
+    } else {
+      if (confirm((resp.msg || 'Debes iniciar sesión para agregar al carrito') + '\n\n¿Ir a iniciar sesión?')) {
+        sessionStorage.setItem('postLoginRedirect', window.location.href);
+        window.location.href = 'login.html';
+      }
+    }
+  });
 }
 
 function setupContacto() {
@@ -246,40 +225,21 @@ function setupContacto() {
   if (!form) return;
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    const respEl = document.getElementById('contacto-respuesta');
     const nombre = document.getElementById('nombre').value.trim();
     const email = document.getElementById('email').value.trim();
     const mensaje = document.getElementById('mensaje').value.trim();
-    respEl.textContent = 'Enviando…';
-    getCsrfToken()
-      .then(function (csrf) {
-        return fetch(apiUrl('contacto'), {
-          method: 'POST',
-          body: new URLSearchParams({
-            nombre: nombre,
-            email: email,
-            mensaje: mensaje,
-            csrf_token: csrf
-          }),
-          credentials: 'include'
-        });
-      })
+    setFeedback('contacto-respuesta', 'Enviando…', null);
+    apiPost('contacto', { nombre: nombre, email: email, mensaje: mensaje })
       .then(function (r) {
-        return r.json();
-      })
-      .then(function (data) {
-        respEl.textContent = data.ok
-          ? data.msg || 'Mensaje enviado.'
-          : data.msg || 'No se pudo enviar.';
-        respEl.style.color = data.ok ? '#99e772' : '#ff8d8d';
+        var data = r.json;
+        setFeedback('contacto-respuesta', data.ok ? (data.msg || 'Mensaje enviado.') : (data.msg || 'No se pudo enviar.'), data.ok);
         if (data.ok) form.reset();
         setTimeout(function () {
-          respEl.textContent = '';
+          setFeedback('contacto-respuesta', '', null);
         }, 6000);
       })
       .catch(function () {
-        respEl.textContent = 'Error de red. Intentá de nuevo.';
-        respEl.style.color = '#ff8d8d';
+        setFeedback('contacto-respuesta', 'Error de red. Intentá de nuevo.', false);
       });
   });
 }

@@ -1,50 +1,37 @@
 (function () {
   'use strict';
 
-  var getCsrf = window.getCsrfToken;
   var resetCsrf = window.resetCsrfTokenCache;
 
   function setMsg(text, ok) {
-    var el = document.getElementById('msg');
-    if (!el) return;
-    el.textContent = text || '';
-    el.style.color = ok ? 'var(--color-success)' : 'var(--color-danger)';
+    setFeedback('msg', text, ok, { ok: 'var(--color-success)', err: 'var(--color-danger)' });
   }
 
-  function checkSession() {
-    return fetch(apiUrl('usuarios?action=check'), { credentials: 'include' }).then(function (r) {
-      return r.json();
+  function buildToolbar(options) {
+    var toolbar = el('div', { class: 'toolbar' });
+    var search = el('input', { type: 'search', placeholder: 'Buscar…', 'aria-label': 'Buscar' });
+    search.addEventListener('input', function (e) {
+      state.filter = e.target.value;
+      options.onFilter();
     });
-  }
-
-  function adminPost(tail, params) {
-    return getCsrf().then(function (csrf) {
-      var body = new URLSearchParams(params);
-      body.set('csrf_token', csrf);
-      return fetch(apiUrl(tail), {
-        method: 'POST',
-        body: body,
-        credentials: 'include',
-      }).then(function (r) {
-        return r.json().then(function (j) {
-          return { ok: r.ok, status: r.status, json: j };
-        });
-      });
+    if (state.filter) search.value = state.filter;
+    toolbar.appendChild(search);
+    if (options.newLabel && options.onNew) {
+      var btnNew = el('button', { class: 'btn btn-primary', type: 'button', text: options.newLabel });
+      btnNew.addEventListener('click', options.onNew);
+      toolbar.appendChild(btnNew);
+    }
+    (options.extra || []).forEach(function (node) {
+      toolbar.appendChild(node);
     });
+    return toolbar;
   }
 
-  function adminPostFormData(tail, formData) {
-    return getCsrf().then(function (csrf) {
-      formData.set('csrf_token', csrf);
-      return fetch(apiUrl(tail), {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      }).then(function (r) {
-        return r.json().then(function (j) {
-          return { ok: r.ok, status: r.status, json: j };
-        });
-      });
+  function confirmPost(message, path, params, onSuccess) {
+    if (!confirm(message)) return;
+    apiPost(path, params).then(function (r) {
+      setMsg(r.json.msg || (r.json.ok ? 'Listo' : 'Error'), r.json.ok);
+      if (r.json.ok && onSuccess) onSuccess();
     });
   }
 
@@ -55,44 +42,11 @@
     }
   }
 
-  function frontendAssetUrl(rel) {
-    var s = String(rel || '').trim();
-    if (!s || /^javascript:/i.test(s) || /^data:/i.test(s)) return '';
-    return new URL('../frontend/' + s.replace(/^\//, ''), window.location.href).href;
-  }
-
-  function adminGet(tail) {
-    return fetch(apiUrl(tail), { credentials: 'include' }).then(function (r) {
-      return r.json().then(function (j) {
-        return { ok: r.ok, status: r.status, json: j };
-      });
-    });
-  }
-
   var state = {
     section: 'productos',
     user: null,
     filter: '',
   };
-
-  function el(tag, attrs, children) {
-    var n = document.createElement(tag);
-    if (attrs) {
-      Object.keys(attrs).forEach(function (k) {
-        if (k === 'text') {
-          n.textContent = attrs[k];
-        } else if (k === 'html') {
-          n.innerHTML = attrs[k];
-        } else {
-          n.setAttribute(k, attrs[k]);
-        }
-      });
-    }
-    (children || []).forEach(function (c) {
-      if (c) n.appendChild(c);
-    });
-    return n;
-  }
 
   function openModal(title) {
     revokeAdminPreviewUrl();
@@ -132,23 +86,17 @@
   function renderProductos() {
     var host = document.getElementById('content');
     host.innerHTML = '';
-    var toolbar = el('div', { class: 'toolbar' });
-    toolbar.appendChild(el('input', { type: 'search', placeholder: 'Buscar…', 'aria-label': 'Buscar' }));
-    toolbar.firstChild.addEventListener('input', function (e) {
-      state.filter = e.target.value;
-      renderProductos();
-    });
-    if (state.filter) {
-      toolbar.firstChild.value = state.filter;
-    }
-    var btnNew = el('button', { class: 'btn btn-primary', type: 'button', text: 'Nuevo producto' });
-    btnNew.addEventListener('click', function () {
-      modalProducto(null);
-    });
-    toolbar.appendChild(btnNew);
-    host.appendChild(toolbar);
+    host.appendChild(
+      buildToolbar({
+        onFilter: renderProductos,
+        newLabel: 'Nuevo producto',
+        onNew: function () {
+          modalProducto(null);
+        },
+      })
+    );
 
-    adminGet('admin/productos').then(function (res) {
+    apiGet('admin/productos').then(function (res) {
       if (!res.json.ok) {
         setMsg(res.json.msg || 'Error al cargar productos', false);
         return;
@@ -185,11 +133,7 @@
         });
         var bDel = el('button', { class: 'btn btn-small btn-danger', type: 'button', text: 'Desactivar' });
         bDel.addEventListener('click', function () {
-          if (!confirm('¿Desactivar este producto?')) return;
-          adminPost('admin/productos/' + p.id, { action: 'delete' }).then(function (r) {
-            setMsg(r.json.msg || (r.json.ok ? 'Listo' : 'Error'), r.json.ok);
-            renderProductos();
-          });
+          confirmPost('¿Desactivar este producto?', 'admin/productos/' + p.id, { action: 'delete' }, renderProductos);
         });
         tdActn.appendChild(bEdit);
         tdActn.appendChild(document.createTextNode(' '));
@@ -300,7 +244,7 @@
       if (p) {
         fd.set('action', 'update');
       }
-      adminPostFormData(tail, fd).then(function (r) {
+      apiPostFormData(tail, fd).then(function (r) {
         setMsg(r.json.msg || (r.json.ok ? 'Guardado' : 'Error'), r.json.ok);
         if (r.json.ok) {
           closeModal();
@@ -313,21 +257,17 @@
   function renderUsuarios() {
     var host = document.getElementById('content');
     host.innerHTML = '';
-    var toolbar = el('div', { class: 'toolbar' });
-    toolbar.appendChild(el('input', { type: 'search', placeholder: 'Buscar…', 'aria-label': 'Buscar' }));
-    toolbar.firstChild.addEventListener('input', function (e) {
-      state.filter = e.target.value;
-      renderUsuarios();
-    });
-    if (state.filter) toolbar.firstChild.value = state.filter;
-    var btnNew = el('button', { class: 'btn btn-primary', type: 'button', text: 'Nuevo usuario' });
-    btnNew.addEventListener('click', function () {
-      modalUsuario(null);
-    });
-    toolbar.appendChild(btnNew);
-    host.appendChild(toolbar);
+    host.appendChild(
+      buildToolbar({
+        onFilter: renderUsuarios,
+        newLabel: 'Nuevo usuario',
+        onNew: function () {
+          modalUsuario(null);
+        },
+      })
+    );
 
-    adminGet('admin/usuarios').then(function (res) {
+    apiGet('admin/usuarios').then(function (res) {
       if (!res.json.ok) {
         setMsg(res.json.msg || 'Error', false);
         return;
@@ -362,11 +302,12 @@
         });
         var b3 = el('button', { class: 'btn btn-small btn-danger', type: 'button', text: 'Eliminar' });
         b3.addEventListener('click', function () {
-          if (!confirm('¿Eliminar usuario? Debe tener carrito vacío.')) return;
-          adminPost('admin/usuarios/' + u.id, { action: 'delete' }).then(function (r) {
-            setMsg(r.json.msg || (r.json.ok ? 'Eliminado' : 'Error'), r.json.ok);
-            renderUsuarios();
-          });
+          confirmPost(
+            '¿Eliminar usuario? Debe tener carrito vacío.',
+            'admin/usuarios/' + u.id,
+            { action: 'delete' },
+            renderUsuarios
+          );
         });
         td.appendChild(b1);
         td.appendChild(document.createTextNode(' '));
@@ -415,7 +356,7 @@
 
     btnSave.addEventListener('click', function () {
       if (!u) {
-        adminPost('admin/usuarios', {
+        apiPost('admin/usuarios', {
           email: f.email.value.trim(),
           nombre: f.nombre.value.trim(),
           password: f.password.value,
@@ -428,7 +369,7 @@
           }
         });
       } else {
-        adminPost('admin/usuarios/' + u.id, {
+        apiPost('admin/usuarios/' + u.id, {
           action: 'update',
           email: f.email.value.trim(),
           nombre: f.nombre.value.trim(),
@@ -447,13 +388,6 @@
   function renderCarrito() {
     var host = document.getElementById('content');
     host.innerHTML = '';
-    var toolbar = el('div', { class: 'toolbar' });
-    toolbar.appendChild(el('input', { type: 'search', placeholder: 'Buscar…', 'aria-label': 'Buscar' }));
-    toolbar.firstChild.addEventListener('input', function (e) {
-      state.filter = e.target.value;
-      renderCarrito();
-    });
-    if (state.filter) toolbar.firstChild.value = state.filter;
     var uidInput = el('input', {
       type: 'number',
       min: '1',
@@ -468,17 +402,21 @@
         setMsg('Indicá un ID de usuario válido', false);
         return;
       }
-      if (!confirm('¿Vaciar todo el carrito del usuario ' + id + '?')) return;
-      adminPost('admin/carrito_items', { action: 'vaciar_usuario', usuario_id: String(id) }).then(function (r) {
-        setMsg(r.json.msg || (r.json.ok ? 'Carrito vaciado' : 'Error'), r.json.ok);
-        renderCarrito();
-      });
+      confirmPost(
+        '¿Vaciar todo el carrito del usuario ' + id + '?',
+        'admin/carrito_items',
+        { action: 'vaciar_usuario', usuario_id: String(id) },
+        renderCarrito
+      );
     });
-    toolbar.appendChild(uidInput);
-    toolbar.appendChild(btnVac);
-    host.appendChild(toolbar);
+    host.appendChild(
+      buildToolbar({
+        onFilter: renderCarrito,
+        extra: [uidInput, btnVac],
+      })
+    );
 
-    adminGet('admin/carrito_items').then(function (res) {
+    apiGet('admin/carrito_items').then(function (res) {
       if (!res.json.ok) {
         setMsg(res.json.msg || 'Error', false);
         return;
@@ -514,18 +452,14 @@
           if (n == null) return;
           var q = parseInt(n, 10);
           if (!q || q < 1) return;
-          adminPost('admin/carrito_items/' + it.id, { action: 'update', cantidad: String(q) }).then(function (r) {
+          apiPost('admin/carrito_items/' + it.id, { action: 'update', cantidad: String(q) }).then(function (r) {
             setMsg(r.json.msg || (r.json.ok ? 'Actualizado' : 'Error'), r.json.ok);
             renderCarrito();
           });
         });
         var bDel = el('button', { class: 'btn btn-small btn-danger', type: 'button', text: 'Quitar' });
         bDel.addEventListener('click', function () {
-          if (!confirm('¿Eliminar esta línea del carrito?')) return;
-          adminPost('admin/carrito_items/' + it.id, { action: 'delete' }).then(function (r) {
-            setMsg(r.json.msg || (r.json.ok ? 'Eliminado' : 'Error'), r.json.ok);
-            renderCarrito();
-          });
+          confirmPost('¿Eliminar esta línea del carrito?', 'admin/carrito_items/' + it.id, { action: 'delete' }, renderCarrito);
         });
         td.appendChild(bQty);
         td.appendChild(document.createTextNode(' '));
@@ -542,16 +476,9 @@
   function renderContacto() {
     var host = document.getElementById('content');
     host.innerHTML = '';
-    var toolbar = el('div', { class: 'toolbar' });
-    toolbar.appendChild(el('input', { type: 'search', placeholder: 'Buscar…', 'aria-label': 'Buscar' }));
-    toolbar.firstChild.addEventListener('input', function (e) {
-      state.filter = e.target.value;
-      renderContacto();
-    });
-    if (state.filter) toolbar.firstChild.value = state.filter;
-    host.appendChild(toolbar);
+    host.appendChild(buildToolbar({ onFilter: renderContacto }));
 
-    adminGet('admin/contacto_mensajes').then(function (res) {
+    apiGet('admin/contacto_mensajes').then(function (res) {
       if (!res.json.ok) {
         host.appendChild(
           el('p', {
@@ -582,7 +509,7 @@
         var td = el('td', { class: 'actions' });
         var bV = el('button', { class: 'btn btn-small', type: 'button', text: 'Ver' });
         bV.addEventListener('click', function () {
-          adminGet('admin/contacto_mensajes/' + m.id).then(function (r) {
+          apiGet('admin/contacto_mensajes/' + m.id).then(function (r) {
             if (!r.json.ok || !r.json.item) {
               setMsg(r.json.msg || 'Error', false);
               return;
@@ -601,11 +528,7 @@
         });
         var bD = el('button', { class: 'btn btn-small btn-danger', type: 'button', text: 'Eliminar' });
         bD.addEventListener('click', function () {
-          if (!confirm('¿Eliminar mensaje?')) return;
-          adminPost('admin/contacto_mensajes/' + m.id, { action: 'delete' }).then(function (r) {
-            setMsg(r.json.msg || (r.json.ok ? 'Eliminado' : 'Error'), r.json.ok);
-            renderContacto();
-          });
+          confirmPost('¿Eliminar mensaje?', 'admin/contacto_mensajes/' + m.id, { action: 'delete' }, renderContacto);
         });
         td.appendChild(bV);
         td.appendChild(document.createTextNode(' '));
@@ -665,7 +588,7 @@
           setMsg(resp.msg || 'Credenciales inválidas', false);
           return;
         }
-        checkSession().then(function (s) {
+        getSession().then(function (s) {
           if (!s.ok) return;
           state.user = s;
           if (!s.es_admin) {
@@ -686,7 +609,7 @@
 
   function init() {
     wireNav();
-    checkSession().then(function (s) {
+    getSession().then(function (s) {
       if (!s.ok) {
         showGate();
         return;

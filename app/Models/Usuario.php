@@ -3,134 +3,102 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Core\Database;
+use App\Models\Contracts\AdminListable;
+use App\Models\Contracts\AdminReadable;
 
-final class Usuario
+final class Usuario extends BaseModel implements AdminListable, AdminReadable
 {
     public function existeEmail(string $email): bool
     {
-        $stmt = Database::pdo()->prepare('SELECT id FROM usuarios WHERE email = ?');
-        $stmt->execute([$email]);
-        return (bool) $stmt->fetch();
+        return $this->exists('SELECT id FROM usuarios WHERE email = ?', [$email]);
     }
 
     public function esAdminPorId(int $id): bool
     {
-        $stmt = Database::pdo()->prepare('SELECT COALESCE(es_admin, 0) FROM usuarios WHERE id = ?');
+        $stmt = $this->pdo->prepare('SELECT COALESCE(es_admin, 0) FROM usuarios WHERE id = ?');
         $stmt->execute([$id]);
-        $v = $stmt->fetchColumn();
-        return (int) $v === 1;
+        return (int) $stmt->fetchColumn() === 1;
     }
 
     public function existeEmailExceptoId(string $email, int $exceptId): bool
     {
-        $stmt = Database::pdo()->prepare('SELECT id FROM usuarios WHERE email = ? AND id <> ?');
-        $stmt->execute([$email, $exceptId]);
-        return (bool) $stmt->fetch();
+        return $this->exists('SELECT id FROM usuarios WHERE email = ? AND id <> ?', [$email, $exceptId]);
     }
 
     public function adminCrear(string $firebaseUid, string $email, string $nombre, int $esAdmin): int
     {
-        $pdo = Database::pdo();
-        $stmt = $pdo->prepare(
-            'INSERT INTO usuarios (firebase_uid, email, nombre, es_admin) VALUES (?, ?, ?, ?)'
+        return $this->insert(
+            'INSERT INTO usuarios (firebase_uid, email, nombre, es_admin) VALUES (?, ?, ?, ?)',
+            [$firebaseUid, $email, $nombre, $esAdmin]
         );
-        $stmt->execute([$firebaseUid, $email, $nombre, $esAdmin]);
-        return (int) $pdo->lastInsertId();
-    }
-
-    /**
-     * @return array{id: int, nombre: string, email: string, es_admin: int}|null
-     */
-    public function buscarPorEmail(string $email): ?array
-    {
-        $stmt = Database::pdo()->prepare(
-            'SELECT id, nombre, email, COALESCE(es_admin, 0) AS es_admin FROM usuarios WHERE email = ?'
-        );
-        $stmt->execute([$email]);
-        $row = $stmt->fetch();
-        return $row ?: null;
-    }
-
-    /** @return array{id: int, nombre: string, email: string}|null */
-    public function buscarPorFirebaseUid(string $uid): ?array
-    {
-        $stmt = Database::pdo()->prepare('SELECT id, nombre, email FROM usuarios WHERE firebase_uid = ?');
-        $stmt->execute([$uid]);
-        $row = $stmt->fetch();
-        return $row ?: null;
     }
 
     /** @return array{id: int, nombre: string, email: string, es_admin: int}|null */
+    public function buscarPorEmail(string $email): ?array
+    {
+        return $this->fetchOne(
+            'SELECT id, nombre, email, COALESCE(es_admin, 0) AS es_admin FROM usuarios WHERE email = ?',
+            [$email]
+        );
+    }
+
+    public function buscarPorFirebaseUid(string $uid): ?array
+    {
+        return $this->fetchOne('SELECT id, nombre, email FROM usuarios WHERE firebase_uid = ?', [$uid]);
+    }
+
     public function buscarPorId(int $id): ?array
     {
-        $stmt = Database::pdo()->prepare(
-            'SELECT id, nombre, email, COALESCE(es_admin, 0) AS es_admin FROM usuarios WHERE id = ?'
+        return $this->fetchOne(
+            'SELECT id, nombre, email, COALESCE(es_admin, 0) AS es_admin FROM usuarios WHERE id = ?',
+            [$id]
         );
-        $stmt->execute([$id]);
-        $row = $stmt->fetch();
-        return $row ?: null;
     }
 
-    /**
-     * @return list<array{id: int, email: string, nombre: string, es_admin: int, creado: string|null}>
-     */
     public function adminListar(): array
     {
-        $stmt = Database::pdo()->query(
+        return $this->queryAll(
             'SELECT id, email, nombre, COALESCE(es_admin, 0) AS es_admin, creado FROM usuarios ORDER BY id ASC'
         );
-        return $stmt->fetchAll() ?: [];
     }
 
-    /**
-     * @return array{id: int, email: string, nombre: string, es_admin: int, creado: string|null}|null
-     */
     public function adminObtener(int $id): ?array
     {
-        $stmt = Database::pdo()->prepare(
-            'SELECT id, email, nombre, COALESCE(es_admin, 0) AS es_admin, creado FROM usuarios WHERE id = ?'
+        return $this->fetchOne(
+            'SELECT id, email, nombre, COALESCE(es_admin, 0) AS es_admin, creado FROM usuarios WHERE id = ?',
+            [$id]
         );
-        $stmt->execute([$id]);
-        $row = $stmt->fetch();
-        return $row ?: null;
     }
 
     public function crearDesdeFirebase(string $uid, string $email, string $nombre): int
     {
-        $stmt = Database::pdo()->prepare(
-            'INSERT INTO usuarios (firebase_uid, email, nombre) VALUES (?, ?, ?)'
+        return $this->insert(
+            'INSERT INTO usuarios (firebase_uid, email, nombre) VALUES (?, ?, ?)',
+            [$uid, $email, $nombre]
         );
-        $stmt->execute([$uid, $email, $nombre]);
-        return (int) Database::pdo()->lastInsertId();
     }
 
     public function vincularFirebaseUid(int $id, string $uid): void
     {
-        $stmt = Database::pdo()->prepare('UPDATE usuarios SET firebase_uid = ? WHERE id = ?');
-        $stmt->execute([$uid, $id]);
+        $this->execute('UPDATE usuarios SET firebase_uid = ? WHERE id = ?', [$uid, $id]);
     }
 
     public function adminActualizarPerfil(int $id, string $email, string $nombre, int $esAdmin): bool
     {
-        $stmt = Database::pdo()->prepare(
-            'UPDATE usuarios SET email = ?, nombre = ?, es_admin = ? WHERE id = ?'
+        return $this->execute(
+            'UPDATE usuarios SET email = ?, nombre = ?, es_admin = ? WHERE id = ?',
+            [$email, $nombre, $esAdmin, $id]
         );
-        return $stmt->execute([$email, $nombre, $esAdmin, $id]);
     }
 
-    /**
-     * @throws \PDOException si hay ítems en carrito (integridad) u otro error de BD
-     */
+    /** @throws \RuntimeException */
     public function adminEliminar(int $id): void
     {
-        $pdo = Database::pdo();
-        $c = $pdo->prepare('SELECT COUNT(*) FROM carrito_items WHERE usuario_id = ?');
-        $c->execute([$id]);
-        if ((int) $c->fetchColumn() > 0) {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM carrito_items WHERE usuario_id = ?');
+        $stmt->execute([$id]);
+        if ((int) $stmt->fetchColumn() > 0) {
             throw new \RuntimeException('El usuario tiene ítems en el carrito; vaciá el carrito antes de eliminar.');
         }
-        $stmt = $pdo->prepare('DELETE FROM usuarios WHERE id = ?');
-        $stmt->execute([$id]);
+        $this->execute('DELETE FROM usuarios WHERE id = ?', [$id]);
     }
 }

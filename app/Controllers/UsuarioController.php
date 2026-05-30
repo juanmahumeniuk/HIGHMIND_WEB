@@ -3,44 +3,37 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Controller\AbstractController;
 use App\Core\Csrf;
-use App\Core\Input;
 use App\Core\JsonResponse;
-use App\Core\PostCsrfGuard;
-use App\Core\Session;
 use App\Models\Usuario;
 
-final class UsuarioController
+final class UsuarioController extends AbstractController
 {
-    use PostCsrfGuard;
-
     public function handle(): void
     {
-        Session::start();
-        $action = $_POST['action'] ?? $_GET['action'] ?? '';
+        $this->startSession();
         $model = new Usuario();
 
-        match ($action) {
+        match ($this->action()) {
             'csrf'   => $this->csrf(),
             'check'  => $this->check($model),
             'logout' => $this->logout(),
-            default  => JsonResponse::send(['error' => 'Acción no válida']),
+            default  => $this->jsonError('Acción no válida', 404),
         };
     }
 
     private function csrf(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-            JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
+        if (!$this->requireMethod('GET')) {
             return;
         }
-        JsonResponse::send(['ok' => true, 'csrf_token' => Csrf::token()]);
+        $this->jsonOk(['csrf_token' => Csrf::token()]);
     }
 
     private function check(Usuario $model): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-            JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
+        if (!$this->requireMethod('GET')) {
             return;
         }
         if (!isset($_SESSION['usuario_id'])) {
@@ -72,10 +65,10 @@ final class UsuarioController
 
     private function logout(): void
     {
-        if (!$this->assertPostCsrf()) {
+        if (!$this->requirePostCsrf()) {
             return;
         }
         session_destroy();
-        JsonResponse::send(['ok' => true, 'msg' => 'Sesión cerrada']);
+        $this->jsonOk(['msg' => 'Sesión cerrada']);
     }
 }

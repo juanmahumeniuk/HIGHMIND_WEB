@@ -41,14 +41,3 @@ window.safeImgSrc = function safeImgSrc(src) {
   return s;
 };
 
-window.actualizarBadgeCarrito = function actualizarBadgeCarrito() {
-  return fetch(apiUrl('carrito?action=get'), { credentials: 'include' })
-    .then(function (r) {
-      return r.ok ? r.json() : Promise.resolve({ total_items: 0 });
-    })
-    .then(function (resp) {
-      const total = resp.total_items || 0;
-      const badge = document.getElementById('carrito-badge');
-      if (badge) badge.textContent = total > 0 ? String(total) : '';
-    });
-};

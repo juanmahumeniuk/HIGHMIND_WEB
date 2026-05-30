@@ -15,18 +15,11 @@
   }
 
   function verifyIdTokenWithBackend(idToken) {
-    return getCsrfToken().then(function (csrf) {
-      return fetch(apiUrl('firebase'), {
-        method: 'POST',
-        body: new URLSearchParams({
-          action: 'verify',
-          id_token: idToken,
-          csrf_token: csrf
-        }),
-        credentials: 'include'
-      });
+    return apiPost('firebase', {
+      action: 'verify',
+      id_token: idToken,
     }).then(function (r) {
-      return r.json();
+      return r.json;
     });
   }
 
@@ -112,29 +105,25 @@
     if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) {
       signOutPromise = firebase.auth().signOut().catch(function () {});
     }
-    return signOutPromise.then(function () {
-      return getCsrfToken().then(function (csrf) {
-        return fetch(apiUrl('usuarios'), {
-          method: 'POST',
-          body: new URLSearchParams({ action: 'logout', csrf_token: csrf }),
-          credentials: 'include'
-        });
+    return signOutPromise
+      .then(function () {
+        return apiPost('usuarios', { action: 'logout' });
+      })
+      .then(function () {
+        resetCsrfTokenCache();
       });
-    }).then(function (r) {
+  };
+
+  window.getSession = function getSession() {
+    return fetch(apiUrl('usuarios?action=check'), { credentials: 'include' }).then(function (r) {
       return r.json();
-    }).then(function () {
-      resetCsrfTokenCache();
     });
   };
 
   window.checkLogin = function checkLogin(callback) {
-    fetch(apiUrl('usuarios?action=check'), { credentials: 'include' })
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (resp) {
-        callback(resp);
-      });
+    getSession().then(function (resp) {
+      callback(resp);
+    });
   };
 
   window.logout = function logout() {
@@ -144,7 +133,7 @@
   };
 
   window.wireSesionNavbar = function wireSesionNavbar() {
-    checkLogin(function (resp) {
+    getSession().then(function (resp) {
       var btn = document.getElementById('sesion-btn');
       if (!btn) return;
 

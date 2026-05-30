@@ -12,11 +12,7 @@ function mostrarModalCarrito() {
 
 // MOSTRAR CARRITO
 function cargarCarrito() {
-  fetch(apiUrl('carrito?action=get'), { credentials: 'include' })
-    .then(function (r) {
-      return r.ok ? r.json() : Promise.resolve({ ok: false, carrito: [], subtotal: 0, total_items: 0 });
-    })
-    .then(function (resp) {
+  fetchCarrito().then(function (resp) {
       const div = document.getElementById('carrito-items');
       if (!div) return;
       if (resp.ok === false && resp.msg) {
@@ -51,7 +47,7 @@ function cargarCarrito() {
         nombre.textContent = String(item.nombre || '');
         const precio = document.createElement('div');
         precio.className = 'carrito-precio';
-        precio.textContent = '$' + Number(item.precio).toLocaleString('es-AR');
+        precio.textContent = formatPrecio(item.precio);
         const cantWrap = document.createElement('div');
         cantWrap.className = 'carrito-cantidad';
         cantWrap.appendChild(document.createTextNode('Cantidad: '));
@@ -75,8 +71,7 @@ function cargarCarrito() {
         fila.appendChild(removeBtn);
         div.appendChild(fila);
       });
-      document.getElementById('carrito-subtotal').textContent =
-        '$' + Number(resp.subtotal || 0).toLocaleString('es-AR');
+      document.getElementById('carrito-subtotal').textContent = formatPrecio(resp.subtotal || 0);
       actualizarBadgeCarrito();
     });
 }
@@ -86,13 +81,7 @@ function setupEliminarYActualizar() {
   document.getElementById('carrito-items').addEventListener('click', function (e) {
     if (e.target.classList.contains('carrito-remove')) {
       const id = e.target.getAttribute('data-id');
-      getCsrfToken().then(function (csrf) {
-        return fetch(apiUrl('carrito'), {
-          method: 'POST',
-          body: new URLSearchParams({ action: 'remove', id: id, csrf_token: csrf }),
-          credentials: 'include'
-        });
-      }).then(function () {
+      apiPostCart('remove', { id: id }).then(function () {
         cargarCarrito();
       });
     }
@@ -102,13 +91,7 @@ function setupEliminarYActualizar() {
     if (e.target.type === 'number') {
       const id = e.target.getAttribute('data-id');
       let qty = parseInt(e.target.value, 10) || 1;
-      getCsrfToken().then(function (csrf) {
-        return fetch(apiUrl('carrito'), {
-          method: 'POST',
-          body: new URLSearchParams({ action: 'update', id: id, qty: qty, csrf_token: csrf }),
-          credentials: 'include'
-        });
-      }).then(function () {
+      apiPostCart('update', { id: id, qty: qty }).then(function () {
         cargarCarrito();
       });
     }
@@ -121,13 +104,7 @@ function setupVaciarCarrito() {
   if (vaciarBtn) {
     vaciarBtn.onclick = function () {
       if (confirm('¿Vaciar todo el carrito?')) {
-        getCsrfToken().then(function (csrf) {
-          return fetch(apiUrl('carrito'), {
-            method: 'POST',
-            body: new URLSearchParams({ action: 'clear', csrf_token: csrf }),
-            credentials: 'include'
-          });
-        }).then(function () {
+        apiPostCart('clear').then(function () {
           cargarCarrito();
         });
       }
@@ -300,11 +277,7 @@ function mountPaymentBrick(totalAmount) {
   mpBricksBuilder = mp.bricks();
 
   // Card Payment Brick: solo tarjeta (evita el paso "elegir medio" del Payment Brick genérico).
-  return fetch(apiUrl('usuarios?action=check'), { credentials: 'include' })
-    .then(function (r) {
-      return r.json();
-    })
-    .then(function (sessionUser) {
+  return getSession().then(function (sessionUser) {
       const init = {
         amount: Number(totalAmount)
       };

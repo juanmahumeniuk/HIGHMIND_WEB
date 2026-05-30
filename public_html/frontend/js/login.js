@@ -90,10 +90,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function showMsg(msg, ok) {
-  var el = document.getElementById('login-msg');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.color = ok ? '#99e772' : '#ff8d8d';
-  el.style.fontWeight = ok ? 'bold' : 'normal';
-  setTimeout(function () { el.textContent = ''; }, 7000);
+  setFeedback('login-msg', msg, ok, { ok: '#99e772', err: '#ff8d8d', weight: { ok: 'bold', err: 'normal' } });
+  setTimeout(function () { setFeedback('login-msg', '', null); }, 7000);
 }
