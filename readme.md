@@ -4,6 +4,29 @@ Tienda de ropa con catálogo, carrito por usuario, autenticación Firebase (emai
 
 ---
 
+## Estructura del repositorio
+
+```
+├── app/                    # Backend PHP (MVC)
+├── database/
+│   ├── migrations/         # Esquema y seeds versionados
+│   └── patches/            # Correcciones puntuales para BDs existentes
+├── docs/
+│   ├── changelog/          # Registro de cambios por entrega (CHANGES-9.xx.md)
+│   ├── gestion/            # Análisis de riesgos, costo-beneficio
+│   ├── pruebas/            # Matrices de pruebas
+│   ├── Guia_Tecnica.md
+│   └── Manual_Usuario.md
+├── public_html/            # Document root (frontend, admin, API)
+├── scripts/                # Utilidades de desarrollo (run.sh)
+├── tests/e2e/              # Pruebas Playwright (npm run test:e2e)
+├── package.json            # Dev: Playwright
+├── .env.example
+└── run.sh                  # Atajo → scripts/run.sh
+```
+
+---
+
 ## Arquitectura
 
 | Capa | Ubicación |
@@ -47,6 +70,8 @@ Migraciones en [`database/migrations/`](database/migrations/):
 | 3 | `003_usuario_admin.sql` — seed admin (opcional) |
 | — | `004_drop_password.sql` — solo BDs existentes con columna `password` |
 
+Parches opcionales en [`database/patches/`](database/patches/) para bases ya desplegadas.
+
 `./run.sh` aplica 000 → 001 → 004 (no-op en instalaciones nuevas).
 
 ---
@@ -62,6 +87,15 @@ php -S localhost:8080 -t public_html public_html/router-dev.php
 ```
 
 Navegá a `http://localhost:8080/frontend/`.
+
+### Pruebas E2E (opcional)
+
+```bash
+npm install
+npm run test:e2e
+```
+
+Los reportes se generan en `playwright-report/` (ignorados por git).
 
 ---
 

@@ -18,6 +18,12 @@ node_modules/
 .phpunit.result.cache
 .php-cs-fixer.cache
 
+# Playwright / E2E (artefactos locales)
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/blob-report/
+
 # SO y editores
 .DS_Store
 Thumbs.db
