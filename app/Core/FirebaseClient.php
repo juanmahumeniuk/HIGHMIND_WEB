@@ -4,29 +4,78 @@ declare(strict_types=1);
 namespace App\Core;
 
 /**
- * Verifica ID tokens de Firebase usando la REST API de Google Identity Toolkit.
- * No requiere librerías externas: solo cURL.
+ * Cliente Firebase Identity Toolkit vía REST (sin librerías externas).
  */
 final class FirebaseClient
 {
     private string $apiKey;
-    private string $projectId;
 
     public function __construct()
     {
-        $this->apiKey    = (string) ($_ENV['FIREBASE_API_KEY'] ?? '');
-        $this->projectId = (string) ($_ENV['FIREBASE_PROJECT_ID'] ?? '');
+        $this->apiKey = (string) ($_ENV['FIREBASE_API_KEY'] ?? '');
     }
 
     /**
-     * Verifica el ID token contra Firebase y devuelve los datos del usuario.
-     *
-     * @return array{uid: string, email: string, name: string}|null  null si el token es inválido
+     * @return array{uid: string, email: string, name: string}|null
      */
     public function verifyIdToken(string $idToken): ?array
     {
-        $url  = 'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' . urlencode($this->apiKey);
-        $body = json_encode(['idToken' => $idToken]);
+        $data = $this->post('accounts:lookup', ['idToken' => $idToken]);
+        if ($data === null) {
+            return null;
+        }
+
+        $user = $data['users'][0] ?? null;
+        if ($user === null) {
+            return null;
+        }
+
+        return [
+            'uid'   => (string) ($user['localId'] ?? ''),
+            'email' => (string) ($user['email'] ?? ''),
+            'name'  => (string) ($user['displayName'] ?? $user['email'] ?? ''),
+        ];
+    }
+
+    /**
+     * Crea un usuario en Firebase Authentication (Email/Password).
+     *
+     * @return array{uid: string, email: string}|null
+     */
+    public function signUp(string $email, string $password): ?array
+    {
+        $data = $this->post('accounts:signUp', [
+            'email'             => $email,
+            'password'          => $password,
+            'returnSecureToken' => true,
+        ]);
+        if ($data === null) {
+            return null;
+        }
+
+        $uid = (string) ($data['localId'] ?? '');
+        if ($uid === '') {
+            return null;
+        }
+
+        return [
+            'uid'   => $uid,
+            'email' => (string) ($data['email'] ?? $email),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>|null
+     */
+    private function post(string $endpoint, array $payload): ?array
+    {
+        if ($this->apiKey === '') {
+            return null;
+        }
+
+        $url  = 'https://identitytoolkit.googleapis.com/v1/' . $endpoint . '?key=' . urlencode($this->apiKey);
+        $body = json_encode($payload);
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -46,16 +95,6 @@ final class FirebaseClient
         }
 
         $data = json_decode((string) $response, true);
-
-        $user = $data['users'][0] ?? null;
-        if ($user === null) {
-            return null;
-        }
-
-        return [
-            'uid'   => (string) ($user['localId'] ?? ''),
-            'email' => (string) ($user['email'] ?? ''),
-            'name'  => (string) ($user['displayName'] ?? $user['email'] ?? ''),
-        ];
+        return is_array($data) ? $data : null;
     }
 }

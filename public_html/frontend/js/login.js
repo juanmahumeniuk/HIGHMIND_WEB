@@ -1,123 +1,95 @@
-// ─── FIREBASE CONFIG ──────────────────────────────────────────────────────────
-// FIREBASE_CONFIG es inyectado por config.js (window.FIREBASE_CONFIG)
-// Se inicializa solo si el SDK está presente (login.html lo carga, otras páginas no)
-if (typeof firebase !== 'undefined' && window.FIREBASE_CONFIG) {
-  firebase.initializeApp(window.FIREBASE_CONFIG);
-}
-
-// ─── BOTÓN GOOGLE LOGIN ───────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
-  var btn = document.getElementById('firebase-google-btn');
-  if (!btn) return;
+  var loginForm = document.getElementById('login-form');
+  var registerForm = document.getElementById('register-form');
+  var showRegister = document.getElementById('show-register');
+  var showLogin = document.getElementById('show-login');
 
-  btn.addEventListener('click', function () {
+  if (showRegister && showLogin) {
+    showRegister.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (loginForm) loginForm.style.display = 'none';
+      if (registerForm) registerForm.style.display = '';
+    });
+    showLogin.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (registerForm) registerForm.style.display = 'none';
+      if (loginForm) loginForm.style.display = '';
+    });
+  }
+
+  function handleAuthSuccess(resp) {
+    if (resp.ok) {
+      showMsg('Bienvenido, ' + (resp.nombre || '') + '!', true);
+      var redirect = sessionStorage.getItem('postLoginRedirect') || 'index.html';
+      sessionStorage.removeItem('postLoginRedirect');
+      setTimeout(function () { window.location.href = redirect; }, 800);
+      return true;
+    }
+    showMsg(resp.msg || 'Error al iniciar sesión', false);
+    return false;
+  }
+
+  function handleAuth(promise, btn, defaultLabel) {
     btn.disabled = true;
     btn.textContent = 'Conectando...';
-
-    var provider = new firebase.auth.GoogleAuthProvider();
-
-    firebase.auth().signInWithPopup(provider)
-      .then(function (result) {
-        return result.user.getIdToken();
-      })
-      .then(function (idToken) {
-        return getCsrfToken().then(function (csrf) {
-          return fetch(apiUrl('firebase'), {
-            method: 'POST',
-            body: new URLSearchParams({
-              action: 'verify',
-              id_token: idToken,
-              csrf_token: csrf
-            }),
-            credentials: 'include'
-          });
-        });
-      })
-      .then(function (r) { return r.json(); })
+    promise
       .then(function (resp) {
-        if (resp.ok) {
-          showMsg('Bienvenido, ' + (resp.nombre || '') + '!', true);
-          var redirect = sessionStorage.getItem('postLoginRedirect') || 'index.html';
-          sessionStorage.removeItem('postLoginRedirect');
-          setTimeout(function () { window.location.href = redirect; }, 800);
-        } else {
-          showMsg(resp.msg || 'Error al iniciar sesión', false);
+        if (resp && resp.cancelled) {
           btn.disabled = false;
-          btn.textContent = 'Ingresar con Google';
+          btn.textContent = defaultLabel;
+          return;
+        }
+        if (!handleAuthSuccess(resp)) {
+          btn.disabled = false;
+          btn.textContent = defaultLabel;
         }
       })
       .catch(function (err) {
-        // El usuario cerró el popup → no mostrar error
-        if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-          btn.disabled = false;
-          btn.textContent = 'Ingresar con Google';
-          return;
-        }
-        showMsg('Error: ' + (err.message || err.code), false);
+        showMsg(err.message || 'Error al iniciar sesión', false);
         btn.disabled = false;
-        btn.textContent = 'Ingresar con Google';
+        btn.textContent = defaultLabel;
       });
-  });
-});
+  }
 
-// ─── FEEDBACK EN PANTALLA ─────────────────────────────────────────────────────
-function showMsg(msg, ok) {
-  var el = document.getElementById('login-msg');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.color = ok ? '#99e772' : '#ff8d8d';
-  el.style.fontWeight = ok ? 'bold' : 'normal';
-  setTimeout(function () { el.textContent = ''; }, 7000);
-}
-
-// ─── NAVBAR: estado de sesión ─────────────────────────────────────────────────
-window.checkLogin = function (callback) {
-  fetch(apiUrl('usuarios?action=check'), { credentials: 'include' })
-    .then(function (r) { return r.json(); })
-    .then(function (resp) { callback(resp); });
-};
-
-window.logout = function () {
-  getCsrfToken()
-    .then(function (csrf) {
-      return fetch(apiUrl('usuarios'), {
-        method: 'POST',
-        body: new URLSearchParams({ action: 'logout', csrf_token: csrf }),
-        credentials: 'include'
-      });
-    })
-    .then(function (r) { return r.json(); })
-    .then(function () {
-      // Cerrar sesión de Firebase también (si SDK está disponible)
-      if (typeof firebase !== 'undefined') {
-        firebase.auth().signOut().catch(function () {});
-      }
-      resetCsrfTokenCache();
-      window.location.reload();
-    });
-};
-
-document.addEventListener('DOMContentLoaded', function () {
-  checkLogin(function (resp) {
-    var btn = document.getElementById('sesion-btn');
+  function wireOAuthButton(btnId, providerId, defaultLabel) {
+    var btn = document.getElementById(btnId);
     if (!btn) return;
+    btn.addEventListener('click', function () {
+      handleAuth(firebaseSignInWithProvider(providerId), btn, defaultLabel);
+    });
+  }
 
-    if (resp.ok && resp.id) {
-      var first = (resp.nombre || '').split(' ')[0];
-      btn.textContent = '';
-      var span = document.createElement('span');
-      span.textContent = first;
-      btn.appendChild(span);
-      btn.appendChild(document.createTextNode(' (Cerrar sesión)'));
-      btn.href = '#';
-      btn.onclick = function (e) {
-        e.preventDefault();
-        window.logout();
-      };
-    } else {
-      btn.textContent = 'Iniciar sesión';
-      btn.href = 'login.html';
-      btn.onclick = null;
-    }
-  });
+  wireOAuthButton('firebase-google-btn', 'google', 'Ingresar con Google');
+  wireOAuthButton('firebase-github-btn', 'github', 'Ingresar con GitHub');
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = document.getElementById('login-email').value.trim();
+      var password = document.getElementById('login-password').value;
+      var btn = document.getElementById('login-submit');
+      handleAuth(firebaseSignIn(email, password), btn, 'Ingresar');
+    });
+  }
+
+  if (registerForm) {
+    registerForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = document.getElementById('register-email').value.trim();
+      var password = document.getElementById('register-password').value;
+      var btn = document.getElementById('register-submit');
+      if (password.length < 6) {
+        showMsg('La contraseña debe tener al menos 6 caracteres', false);
+        return;
+      }
+      handleAuth(firebaseSignUp(email, password), btn, 'Crear cuenta');
+    });
+  }
+
+  wireSesionNavbar();
 });
+
+function showMsg(msg, ok) {
+  setFeedback('login-msg', msg, ok, { ok: '#99e772', err: '#ff8d8d', weight: { ok: 'bold', err: 'normal' } });
+  setTimeout(function () { setFeedback('login-msg', '', null); }, 7000);
+}

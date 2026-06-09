@@ -1,171 +1,71 @@
-@import url('https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap');
+/* Admin — estilos específicos sobre el design system de estilo.css */
 
 :root {
-  --color-bg: #000;
-  --color-surface: #0a0a0a;
-  --color-card: #111;
-  --color-border: #222;
-  --color-text: #fff;
-  --color-muted: #888;
-  --color-accent: #fff;
-  --color-success: #7cb342;
-  --color-danger: #e57373;
-  --radius-lg: 0.6rem;
-  --radius-xl: 1rem;
-  --shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+  --color-success: #99e772;
+  --color-danger: #ff8d8d;
 }
 
-* {
-  box-sizing: border-box;
+.admin-page {
+  position: relative;
+  z-index: 1;
+  min-height: calc(100vh - 4rem);
 }
 
-html,
-body {
-  margin: 0;
-  min-height: 100%;
-  font-family: 'Roboto', Arial, sans-serif;
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-
-a {
-  color: var(--color-accent);
-}
-
-.admin-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  padding: 0.65rem 1.25rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
-}
-
-.admin-header-brand {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.admin-header-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.admin-site-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.admin-site-nav a {
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.admin-header h1 {
-  margin: 0;
-  font-size: 1.05rem;
-  letter-spacing: 0.06em;
-  font-weight: 700;
-}
-
-.admin-header .sub {
-  font-size: 0.8rem;
-  color: var(--color-muted);
-  margin-left: 0.5rem;
-}
-
-#gate,
-#denied {
-  max-width: 420px;
-  margin: 3rem auto;
-  padding: 1.75rem;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow);
-}
-
-#gate h2,
-#denied h2 {
-  margin-top: 0;
-  font-size: 1.2rem;
-}
-
-#gate form label {
-  display: block;
-  font-size: 0.85rem;
-  color: var(--color-muted);
-  margin-bottom: 0.35rem;
-}
-
-#gate input {
-  width: 100%;
-  margin-bottom: 0.85rem;
-  padding: 0.55rem 0.65rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: #0d0d0d;
-  color: var(--color-text);
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.55rem 1rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: #1a1a1a;
-  color: var(--color-text);
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
-.btn:hover {
-  border-color: #444;
-  background: #222;
-}
-
-.btn-primary {
-  background: #fff;
-  color: #000;
-  border-color: #fff;
-}
-
-.btn-primary:hover {
-  background: #e8e8e8;
-}
-
-.btn-danger {
-  border-color: #5c2a2a;
-  color: #ffcdd2;
-  background: #2a1212;
-}
-
-.btn-small {
-  padding: 0.3rem 0.55rem;
-  font-size: 0.78rem;
-}
-
-#msg {
+.admin-msg {
+  max-width: var(--max-content);
+  margin: 0 auto;
+  padding: 0.5rem clamp(1rem, 4vw, var(--padding-main)) 0;
   min-height: 1.25rem;
-  margin-top: 0.75rem;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
+  text-align: center;
 }
 
+/* Gate / acceso */
+.admin-gate {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: clamp(2rem, 6vw, 4rem) clamp(1rem, 4vw, var(--padding-main));
+}
+
+.admin-gate-box {
+  max-width: 430px;
+  width: 100%;
+}
+
+.admin-gate-box h2 {
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  text-align: center;
+  color: #fff;
+  margin: 0 0 0.35em;
+}
+
+.admin-gate-links {
+  margin-top: 1.2rem !important;
+}
+
+.admin-sql-hint {
+  background: rgba(0, 0, 0, 0.45);
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-strong);
+  font-size: 0.8rem;
+  overflow: auto;
+  color: var(--color-subtle);
+  margin: 0 0 1rem;
+}
+
+/* Layout del panel */
 #app-panel {
   display: none;
-  min-height: calc(100vh - 52px);
+  max-width: var(--max-content);
+  margin: 0 auto;
+  padding: clamp(1.25rem, 3vw, 2rem) clamp(1rem, 4vw, var(--padding-main)) 3rem;
+  gap: clamp(1rem, 2.5vw, 1.75rem);
 }
 
 #app-panel.visible {
@@ -173,59 +73,90 @@ a {
 }
 
 .admin-sidebar {
-  width: 200px;
+  width: 220px;
   flex-shrink: 0;
-  border-right: 1px solid var(--color-border);
-  background: var(--color-surface);
-  padding: 1rem 0.65rem;
+  align-self: flex-start;
+  position: sticky;
+  top: calc(3.5rem + 1rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, var(--color-surface-3), var(--color-card));
+  padding: 1rem 0.75rem;
+  box-shadow: var(--shadow-xl);
+}
+
+.admin-sidebar-label {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0 0 0.65rem 0.5rem;
 }
 
 .admin-sidebar button {
   width: 100%;
   text-align: left;
   margin-bottom: 0.35rem;
-  padding: 0.55rem 0.65rem;
+  padding: 0.65rem 0.75rem;
   border-radius: var(--radius-lg);
   border: 1px solid transparent;
   background: transparent;
   color: var(--color-text);
   cursor: pointer;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.88rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: background var(--duration) var(--ease-out), border-color var(--duration) var(--ease-out), color var(--duration) var(--ease-out);
 }
 
 .admin-sidebar button:hover {
-  background: #161616;
-  border-color: var(--color-border);
+  background: rgba(255, 228, 77, 0.08);
+  border-color: rgba(255, 228, 77, 0.2);
+  color: #fff;
 }
 
 .admin-sidebar button.active {
-  background: #1c1c1c;
-  border-color: #333;
+  background: var(--accent-grad-soft);
+  border-color: rgba(255, 228, 77, 0.35);
+  color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .admin-main {
   flex: 1;
-  padding: 1.1rem 1.25rem 2rem;
+  min-width: 0;
   overflow-x: auto;
 }
 
+/* Toolbar y tablas */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.6rem;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.15rem;
 }
 
 .toolbar input[type='search'] {
   flex: 1;
   min-width: 160px;
   max-width: 320px;
-  padding: 0.45rem 0.6rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: #0d0d0d;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border-strong);
+  background: rgba(0, 0, 0, 0.45);
   color: var(--color-text);
+  outline: none;
+  transition: border-color var(--duration) var(--ease-out), box-shadow var(--duration) var(--ease-out);
+}
+
+.toolbar input[type='search']:focus {
+  border-color: var(--accent);
+  box-shadow: var(--glow);
 }
 
 .table-wrap {
@@ -233,7 +164,7 @@ a {
   border-radius: var(--radius-xl);
   overflow: auto;
   background: var(--color-card);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-xl);
 }
 
 table.data {
@@ -244,16 +175,20 @@ table.data {
 
 table.data th,
 table.data td {
-  padding: 0.55rem 0.65rem;
+  padding: 0.65rem 0.75rem;
   border-bottom: 1px solid var(--color-border);
   text-align: left;
   vertical-align: top;
 }
 
 table.data th {
-  background: #141414;
+  background: var(--color-surface-3);
   color: var(--color-muted);
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -261,29 +196,61 @@ table.data tr:last-child td {
   border-bottom: none;
 }
 
+table.data tbody tr:hover td {
+  background: rgba(255, 228, 77, 0.03);
+}
+
 table.data td.actions {
   white-space: nowrap;
 }
 
+/* Badges */
 .badge {
   display: inline-block;
-  padding: 0.15rem 0.45rem;
-  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
   font-size: 0.72rem;
-  border: 1px solid var(--color-border);
+  font-weight: 600;
+  border: 1px solid var(--color-border-strong);
   color: var(--color-muted);
 }
 
 .badge.on {
-  color: #c5e1a5;
-  border-color: #33691e;
-  background: #1b2e0f;
+  color: var(--color-success);
+  border-color: rgba(153, 231, 114, 0.35);
+  background: rgba(153, 231, 114, 0.1);
 }
 
+/* Botones admin (complementan estilo.css) */
+.btn-small {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+}
+
+.btn-danger {
+  border-color: rgba(255, 141, 141, 0.45);
+  color: #ffcdd2;
+  background: rgba(255, 80, 80, 0.12);
+}
+
+.btn-danger:hover {
+  border-color: var(--color-danger);
+  background: rgba(255, 80, 80, 0.2);
+  color: #fff;
+}
+
+.muted {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+/* Modal admin (CRUD) — distinto del modal de producto del sitio */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(2, 2, 3, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: none;
   align-items: center;
   justify-content: center;
@@ -295,43 +262,61 @@ table.data td.actions {
   display: flex;
 }
 
-.modal {
+.admin-modal {
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
   overflow: auto;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-xl);
-  padding: 1.15rem 1.25rem;
-  box-shadow: var(--shadow);
+  padding: 1.35rem 1.4rem;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65), var(--glow);
+  animation: modalPopIn 0.22s var(--ease-out) both;
 }
 
-.modal h3 {
+.admin-modal h3 {
   margin: 0 0 0.85rem;
-  font-size: 1.05rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #fff;
 }
 
-.modal label {
+.admin-modal label {
   display: block;
-  font-size: 0.8rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--color-muted);
-  margin: 0.5rem 0 0.25rem;
+  margin: 0.65rem 0 0.3rem;
 }
 
-.modal input,
-.modal textarea,
-.modal select {
+.admin-modal input,
+.admin-modal textarea,
+.admin-modal select {
   width: 100%;
-  padding: 0.5rem 0.55rem;
+  padding: 0.65rem 0.75rem;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-  background: #0d0d0d;
+  border: 1px solid var(--color-border-strong);
+  background: rgba(0, 0, 0, 0.45);
   color: var(--color-text);
   font-family: inherit;
+  outline: none;
+  transition: border-color var(--duration) var(--ease-out), box-shadow var(--duration) var(--ease-out);
 }
 
-.modal textarea {
+.admin-modal input:focus,
+.admin-modal textarea:focus,
+.admin-modal select:focus {
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+
+.admin-modal textarea {
   min-height: 90px;
   resize: vertical;
 }
@@ -341,7 +326,7 @@ table.data td.actions {
   padding: 0.65rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  background: #0d0d0d;
+  background: rgba(0, 0, 0, 0.35);
   min-height: 100px;
   display: flex;
   align-items: center;
@@ -360,17 +345,12 @@ table.data td.actions {
   display: none;
 }
 
-.modal-actions {
+.admin-modal .modal-actions {
   display: flex;
   gap: 0.5rem;
   justify-content: flex-end;
-  margin-top: 1rem;
+  margin-top: 1.15rem;
   flex-wrap: wrap;
-}
-
-.muted {
-  color: var(--color-muted);
-  font-size: 0.85rem;
 }
 
 @media (max-width: 840px) {
@@ -380,15 +360,33 @@ table.data td.actions {
 
   .admin-sidebar {
     width: 100%;
+    position: static;
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
-    border-right: none;
-    border-bottom: 1px solid var(--color-border);
+    padding: 0.85rem;
+  }
+
+  .admin-sidebar-label {
+    flex-basis: 100%;
+    margin-bottom: 0.25rem;
   }
 
   .admin-sidebar button {
     width: auto;
-    flex: 1 1 42%;
+    flex: 1 1 calc(50% - 0.35rem);
+    margin-bottom: 0;
+    box-shadow: none;
+  }
+
+  .admin-sidebar button.active {
+    box-shadow: none;
+    border-color: rgba(255, 228, 77, 0.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-modal {
+    animation: none;
   }
 }

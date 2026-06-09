@@ -89,18 +89,20 @@ INSERT INTO `productos` (`id`, `nombre`, `descripcion`, `precio`, `img`, `stock`
 CREATE TABLE `usuarios` (
   `id` int(11) NOT NULL,
   `email` varchar(80) NOT NULL,
-  `password` varchar(255) NOT NULL,
+  `firebase_uid` varchar(128) DEFAULT NULL,
   `nombre` varchar(60) NOT NULL,
+  `es_admin` tinyint(1) NOT NULL DEFAULT 0,
   `creado` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Volcado de datos para la tabla `usuarios`
+-- Perfiles vinculables al primer login Firebase (firebase_uid se completa en verify).
 --
 
-INSERT INTO `usuarios` (`id`, `email`, `password`, `nombre`, `creado`) VALUES
-(1, 'juanmanuel.nextop@gmail.com', '$2y$10$Fama3HW5EwZI/FLi4OUqc.K3zUg8RH4rXikUcRXe/6BzDM1b6GBea', 'Juan Manuel', '2025-06-03 00:42:56'),
-(2, 'jmanuelhumeniuk@gmail.com', '$2y$10$989o/CwoHv3.hsYiIEw3mehu5qogRl9X8HcNgvRzRbAZtyAfQZy5O', 'Juan Manuel Humeniuk', '2025-06-03 02:09:54');
+INSERT INTO `usuarios` (`id`, `email`, `firebase_uid`, `nombre`, `es_admin`, `creado`) VALUES
+(1, 'juanmanuel.nextop@gmail.com', NULL, 'Juan Manuel', 0, '2025-06-03 00:42:56'),
+(2, 'jmanuelhumeniuk@gmail.com', NULL, 'Juan Manuel Humeniuk', 0, '2025-06-03 02:09:54');
 
 --
 -- Índices para tablas volcadas
@@ -125,7 +127,8 @@ ALTER TABLE `productos`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD UNIQUE KEY `firebase_uid` (`firebase_uid`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas

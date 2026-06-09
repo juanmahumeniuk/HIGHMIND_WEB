@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setMenuOpen(!navLinks.classList.contains('open'));
   });
 
-  // Cerrar al hacer click fuera
   document.body.addEventListener('click', function(e) {
     if (
       navLinks.classList.contains('open') &&
@@ -25,18 +24,4 @@ document.addEventListener('DOMContentLoaded', function() {
       setMenuOpen(false);
     }
   }, true);
-
-  var adminItem = document.getElementById('nav-admin-item');
-  if (adminItem && typeof window.apiUrl === 'function') {
-    fetch(window.apiUrl('usuarios?action=check'), { credentials: 'include' })
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (resp) {
-        if (resp.ok && resp.es_admin) {
-          adminItem.style.display = '';
-        }
-      })
-      .catch(function () {});
-  }
 });

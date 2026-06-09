@@ -2,16 +2,8 @@
 let mpBrickController = null;
 let mpBricksBuilder = null;
 let mpPublicKey = '';
+let checkoutConfigCache = null;
 
-function safeImgSrc(src) {
-  const s = String(src || '').trim();
-  if (/^javascript:/i.test(s) || /^data:/i.test(s)) {
-    return '';
-  }
-  return s;
-}
-
-// ABRIR Y CERRAR MODAL
 function mostrarModalCarrito() {
   document.getElementById('modal-carrito').style.display = 'flex';
   cargarCarrito();
@@ -20,11 +12,7 @@ function mostrarModalCarrito() {
 
 // MOSTRAR CARRITO
 function cargarCarrito() {
-  fetch(apiUrl('carrito?action=get'), { credentials: 'include' })
-    .then(function (r) {
-      return r.ok ? r.json() : Promise.resolve({ ok: false, carrito: [], subtotal: 0, total_items: 0 });
-    })
-    .then(function (resp) {
+  fetchCarrito().then(function (resp) {
       const div = document.getElementById('carrito-items');
       if (!div) return;
       if (resp.ok === false && resp.msg) {
@@ -59,7 +47,7 @@ function cargarCarrito() {
         nombre.textContent = String(item.nombre || '');
         const precio = document.createElement('div');
         precio.className = 'carrito-precio';
-        precio.textContent = '$' + Number(item.precio).toLocaleString('es-AR');
+        precio.textContent = formatPrecio(item.precio);
         const cantWrap = document.createElement('div');
         cantWrap.className = 'carrito-cantidad';
         cantWrap.appendChild(document.createTextNode('Cantidad: '));
@@ -83,8 +71,7 @@ function cargarCarrito() {
         fila.appendChild(removeBtn);
         div.appendChild(fila);
       });
-      document.getElementById('carrito-subtotal').textContent =
-        '$' + Number(resp.subtotal || 0).toLocaleString('es-AR');
+      document.getElementById('carrito-subtotal').textContent = formatPrecio(resp.subtotal || 0);
       actualizarBadgeCarrito();
     });
 }
@@ -94,13 +81,7 @@ function setupEliminarYActualizar() {
   document.getElementById('carrito-items').addEventListener('click', function (e) {
     if (e.target.classList.contains('carrito-remove')) {
       const id = e.target.getAttribute('data-id');
-      getCsrfToken().then(function (csrf) {
-        return fetch(apiUrl('carrito'), {
-          method: 'POST',
-          body: new URLSearchParams({ action: 'remove', id: id, csrf_token: csrf }),
-          credentials: 'include'
-        });
-      }).then(function () {
+      apiPostCart('remove', { id: id }).then(function () {
         cargarCarrito();
       });
     }
@@ -110,13 +91,7 @@ function setupEliminarYActualizar() {
     if (e.target.type === 'number') {
       const id = e.target.getAttribute('data-id');
       let qty = parseInt(e.target.value, 10) || 1;
-      getCsrfToken().then(function (csrf) {
-        return fetch(apiUrl('carrito'), {
-          method: 'POST',
-          body: new URLSearchParams({ action: 'update', id: id, qty: qty, csrf_token: csrf }),
-          credentials: 'include'
-        });
-      }).then(function () {
+      apiPostCart('update', { id: id, qty: qty }).then(function () {
         cargarCarrito();
       });
     }
@@ -129,13 +104,7 @@ function setupVaciarCarrito() {
   if (vaciarBtn) {
     vaciarBtn.onclick = function () {
       if (confirm('¿Vaciar todo el carrito?')) {
-        getCsrfToken().then(function (csrf) {
-          return fetch(apiUrl('carrito'), {
-            method: 'POST',
-            body: new URLSearchParams({ action: 'clear', csrf_token: csrf }),
-            credentials: 'include'
-          });
-        }).then(function () {
+        apiPostCart('clear').then(function () {
           cargarCarrito();
         });
       }
@@ -172,44 +141,84 @@ function syncCheckoutDisabledHint() {
   }
 }
 
-function applyCheckoutButtonState() {
-  const btn = document.getElementById('finalizar-compra');
+function applyCheckoutButtonStateFromConfig(d, btn) {
   if (!btn) return;
-  fetch(apiUrl('pagos?action=config'), { credentials: 'include' })
+  if (!d) {
+    btn.disabled = true;
+    btn.setAttribute('aria-disabled', 'true');
+    btn.setAttribute('data-checkout-lock', 'login_required');
+    btn.title = 'Iniciá sesión para finalizar la compra.';
+    btn.classList.add('btn-checkout-locked');
+    return;
+  }
+  if (d.payments_enabled === false) {
+    btn.disabled = true;
+    btn.setAttribute('aria-disabled', 'true');
+    btn.setAttribute('data-checkout-lock', 'payments_disabled');
+    btn.title = d.msg || 'Pagos deshabilitados en este sitio.';
+    btn.classList.add('btn-checkout-locked');
+    return;
+  }
+  if (!d.public_key) {
+    btn.disabled = true;
+    btn.setAttribute('aria-disabled', 'true');
+    btn.setAttribute('data-checkout-lock', 'not_configured');
+    btn.title = d.msg || 'Pagos no configurados.';
+    btn.classList.add('btn-checkout-locked');
+    return;
+  }
+  btn.disabled = false;
+  btn.removeAttribute('aria-disabled');
+  btn.removeAttribute('data-checkout-lock');
+  btn.title = '';
+  btn.classList.remove('btn-checkout-locked');
+}
+
+function loadCheckoutConfigRaw(forceRefresh) {
+  if (!forceRefresh && checkoutConfigCache) {
+    return checkoutConfigCache;
+  }
+  checkoutConfigCache = fetch(apiUrl('pagos?action=config'), { credentials: 'include' })
     .then(function (r) {
       if (r.status === 401) {
-        btn.disabled = true;
-        btn.setAttribute('aria-disabled', 'true');
-        btn.setAttribute('data-checkout-lock', 'login_required');
-        btn.title = 'Iniciá sesión para finalizar la compra.';
-        btn.classList.add('btn-checkout-locked');
-        return null;
+        return { _unauthorized: true };
       }
       return r.json();
     })
     .then(function (d) {
-      if (!d) return;
-      if (d.payments_enabled === false) {
-        btn.disabled = true;
-        btn.setAttribute('aria-disabled', 'true');
-        btn.setAttribute('data-checkout-lock', 'payments_disabled');
-        btn.title = d.msg || 'Pagos deshabilitados en este sitio.';
-        btn.classList.add('btn-checkout-locked');
+      if (d && !d._unauthorized && d.public_key) {
+        mpPublicKey = d.public_key;
+      }
+      return d;
+    });
+  return checkoutConfigCache;
+}
+
+function fetchCheckoutConfig(forceRefresh) {
+  return loadCheckoutConfigRaw(forceRefresh).then(function (d) {
+    if (d && d._unauthorized) {
+      throw new Error('Iniciá sesión para pagar.');
+    }
+    if (d.payments_enabled === false) {
+      throw new Error(d.msg || 'Los pagos están deshabilitados.');
+    }
+    if (!d.ok || !d.public_key) {
+      throw new Error(d.msg || 'No se pudo inicializar Mercado Pago');
+    }
+    return d;
+  });
+}
+
+function applyCheckoutButtonState() {
+  const btn = document.getElementById('finalizar-compra');
+  if (!btn) return;
+  loadCheckoutConfigRaw()
+    .then(function (d) {
+      if (d && d._unauthorized) {
+        applyCheckoutButtonStateFromConfig(null, btn);
         return;
       }
-      if (!d.public_key) {
-        btn.disabled = true;
-        btn.setAttribute('aria-disabled', 'true');
-        btn.setAttribute('data-checkout-lock', 'not_configured');
-        btn.title = d.msg || 'Pagos no configurados.';
-        btn.classList.add('btn-checkout-locked');
-        return;
-      }
-      btn.disabled = false;
-      btn.removeAttribute('aria-disabled');
-      btn.removeAttribute('data-checkout-lock');
-      btn.title = '';
-      btn.classList.remove('btn-checkout-locked');
+      applyCheckoutButtonStateFromConfig(d, btn);
     })
     .catch(function () {})
     .finally(function () {
@@ -229,26 +238,6 @@ function setCheckoutPaymentNotice(config) {
     el.style.display = 'none';
     el.textContent = '';
   }
-}
-
-function fetchCheckoutConfig() {
-  return fetch(apiUrl('pagos?action=config'), { credentials: 'include' })
-    .then(function (r) {
-      if (r.status === 401) {
-        throw new Error('Iniciá sesión para pagar.');
-      }
-      return r.json();
-    })
-    .then(function (d) {
-      if (d.payments_enabled === false) {
-        throw new Error(d.msg || 'Los pagos están deshabilitados.');
-      }
-      if (!d.ok || !d.public_key) {
-        throw new Error(d.msg || 'No se pudo inicializar Mercado Pago');
-      }
-      mpPublicKey = d.public_key;
-      return d;
-    });
 }
 
 function destroyBrickIfAny() {
@@ -288,11 +277,7 @@ function mountPaymentBrick(totalAmount) {
   mpBricksBuilder = mp.bricks();
 
   // Card Payment Brick: solo tarjeta (evita el paso "elegir medio" del Payment Brick genérico).
-  return fetch(apiUrl('usuarios?action=check'), { credentials: 'include' })
-    .then(function (r) {
-      return r.json();
-    })
-    .then(function (sessionUser) {
+  return getSession().then(function (sessionUser) {
       const init = {
         amount: Number(totalAmount)
       };
@@ -404,18 +389,6 @@ function setupFinalizarCompra() {
         });
     };
   }
-}
-
-function actualizarBadgeCarrito() {
-  fetch(apiUrl('carrito?action=get'), { credentials: 'include' })
-    .then(function (r) {
-      return r.ok ? r.json() : Promise.resolve({ total_items: 0 });
-    })
-    .then(function (resp) {
-      const total = resp.total_items || 0;
-      const badge = document.getElementById('carrito-badge');
-      if (badge) badge.textContent = total > 0 ? String(total) : '';
-    });
 }
 
 function setupAbrirCarrito() {

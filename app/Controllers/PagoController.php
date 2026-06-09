@@ -3,39 +3,30 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Core\Csrf;
+use App\Core\Controller\AuthenticatedController;
 use App\Core\Env;
 use App\Core\JsonResponse;
-use App\Core\Session;
 use App\Models\Carrito;
 
-final class PagoController
+final class PagoController extends AuthenticatedController
 {
     public function handle(): void
     {
-        Session::start();
-        if (!isset($_SESSION['usuario_id'])) {
-            JsonResponse::send(['ok' => false, 'msg' => 'No autorizado'], 401);
+        $usuarioId = $this->requireAuth();
+        if ($usuarioId === null) {
             return;
         }
 
-        $action = $_GET['action'] ?? $_POST['action'] ?? '';
-        if ($action === 'config') {
-            $this->config();
-            return;
-        }
-        if ($action === 'create') {
-            $this->create((int) $_SESSION['usuario_id']);
-            return;
-        }
-
-        JsonResponse::send(['ok' => false, 'msg' => 'Acción no válida'], 400);
+        match ($this->action()) {
+            'config' => $this->config(),
+            'create' => $this->create($usuarioId),
+            default  => $this->jsonError('Acción no válida', 400),
+        };
     }
 
     private function config(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-            JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
+        if (!$this->requireMethod('GET')) {
             return;
         }
         $publicKey = Env::get('MP_PUBLIC_KEY', '') ?? '';
@@ -44,8 +35,7 @@ final class PagoController
         $paymentsEnabled = self::paymentsEnabled();
 
         if (!$paymentsEnabled) {
-            JsonResponse::send([
-                'ok' => true,
+            $this->jsonOk([
                 'payments_enabled' => false,
                 'public_key' => '',
                 'test_mode' => $testMode,
@@ -65,31 +55,28 @@ final class PagoController
 
     private function create(int $usuarioId): void
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            JsonResponse::send(['ok' => false, 'msg' => 'Método no permitido'], 405);
+        if (!$this->requireMethod('POST')) {
             return;
         }
-
         if (!self::paymentsEnabled()) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Los pagos están deshabilitados en este entorno.'], 403);
+            $this->jsonError('Los pagos están deshabilitados en este entorno.', 403);
             return;
         }
 
         $payload = $this->jsonBody();
-        $csrf = isset($payload['csrf_token']) && is_string($payload['csrf_token']) ? $payload['csrf_token'] : '';
-        if ($csrf === '' || !Csrf::validate($csrf)) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Token CSRF inválido'], 403);
+        if (!$this->requireJsonCsrf($payload)) {
             return;
         }
 
         $token = isset($payload['token']) && is_string($payload['token']) ? trim($payload['token']) : '';
-        $paymentMethodId = isset($payload['payment_method_id']) && is_string($payload['payment_method_id']) ? trim($payload['payment_method_id']) : '';
+        $paymentMethodId = isset($payload['payment_method_id']) && is_string($payload['payment_method_id'])
+            ? trim($payload['payment_method_id']) : '';
         $installments = isset($payload['installments']) ? (int) $payload['installments'] : 1;
         $payerEmail = isset($payload['payer_email']) && is_string($payload['payer_email']) ? trim($payload['payer_email']) : '';
         $issuerId = isset($payload['issuer_id']) ? (int) $payload['issuer_id'] : null;
 
         if ($token === '' || $paymentMethodId === '' || $installments < 1 || !filter_var($payerEmail, FILTER_VALIDATE_EMAIL)) {
-            JsonResponse::send(['ok' => false, 'msg' => 'Datos de pago incompletos'], 400);
+            $this->jsonError('Datos de pago incompletos', 400);
             return;
         }
 
@@ -97,22 +84,25 @@ final class PagoController
         $amount = (float) $carrito['subtotal'];
         $items = (int) $carrito['total_items'];
         if ($amount <= 0 || $items < 1) {
-            JsonResponse::send(['ok' => false, 'msg' => 'El carrito está vacío'], 400);
+            $this->jsonError('El carrito está vacío', 400);
             return;
         }
 
         $productoModel = new \App\Models\Producto();
         foreach ($carrito['carrito'] as $item) {
-            $stock = $productoModel->obtenerStock((int)$item['producto_id']);
+            $stock = $productoModel->obtenerStock((int) $item['producto_id']);
             if ($item['cantidad'] > $stock) {
-                JsonResponse::send(['ok' => false, 'msg' => 'El producto "' . $item['nombre'] . '" no tiene stock suficiente (' . $stock . ' disponibles)'], 400);
+                $this->jsonError(
+                    'El producto "' . $item['nombre'] . '" no tiene stock suficiente (' . $stock . ' disponibles)',
+                    400
+                );
                 return;
             }
         }
 
         $accessToken = Env::get('MP_ACCESS_TOKEN', '') ?? '';
         if ($accessToken === '') {
-            JsonResponse::send(['ok' => false, 'msg' => 'Falta configurar MP_ACCESS_TOKEN'], 500);
+            $this->jsonError('Falta configurar MP_ACCESS_TOKEN', 500);
             return;
         }
 
@@ -123,9 +113,7 @@ final class PagoController
             'description' => $description,
             'installments' => $installments,
             'payment_method_id' => $paymentMethodId,
-            'payer' => [
-                'email' => $payerEmail,
-            ],
+            'payer' => ['email' => $payerEmail],
         ];
         if ($issuerId !== null && $issuerId > 0) {
             $requestBody['issuer_id'] = $issuerId;
@@ -157,18 +145,12 @@ final class PagoController
 
         if ($status === 'approved') {
             (new Carrito())->vaciar($usuarioId);
-            JsonResponse::send([
-                'ok' => true,
-                'status' => 'approved',
-                'msg' => 'Pago aprobado',
-                'payment_id' => $paymentId,
-            ]);
+            $this->jsonOk(['status' => 'approved', 'msg' => 'Pago aprobado', 'payment_id' => $paymentId]);
             return;
         }
 
         if ($status === 'pending' || $status === 'in_process') {
-            JsonResponse::send([
-                'ok' => true,
+            $this->jsonOk([
                 'status' => $status,
                 'msg' => 'Pago pendiente. Estamos validando la operación.',
                 'payment_id' => $paymentId,
@@ -186,9 +168,7 @@ final class PagoController
         ], 402);
     }
 
-    /**
-     * @return array{0:int,1:array<string,mixed>|null}
-     */
+    /** @return array{0:int,1:array<string,mixed>|null} */
     private function mercadoPagoCreatePayment(string $accessToken, array $body): array
     {
         $baseUrl = Env::get('MP_API_BASE', 'https://api.mercadopago.com') ?? 'https://api.mercadopago.com';
@@ -204,16 +184,14 @@ final class PagoController
             return [0, null];
         }
 
-        $headers = [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $accessToken,
-            'X-Idempotency-Key: ' . bin2hex(random_bytes(16)),
-        ];
-
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => $json,
-            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $accessToken,
+                'X-Idempotency-Key: ' . bin2hex(random_bytes(16)),
+            ],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 20,
         ]);
@@ -228,19 +206,6 @@ final class PagoController
 
         $decoded = json_decode($raw, true);
         return [$status, is_array($decoded) ? $decoded : null];
-    }
-
-    /**
-     * @return array<string,mixed>
-     */
-    private function jsonBody(): array
-    {
-        $raw = file_get_contents('php://input');
-        if (!is_string($raw) || $raw === '') {
-            return [];
-        }
-        $decoded = json_decode($raw, true);
-        return is_array($decoded) ? $decoded : [];
     }
 
     private static function paymentsEnabled(): bool
